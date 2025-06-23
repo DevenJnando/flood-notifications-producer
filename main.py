@@ -3,7 +3,6 @@ from fastapi import FastAPI, Body
 import services.get_all_subscribers
 from connections.mailing_list_odbc import get_conn
 from models.latest_flood_update import LatestFloodUpdate
-from connections import mailing_list_odbc
 
 app = FastAPI()
 
@@ -15,7 +14,7 @@ async def root():
 
 @app.get("/subscribers/all")
 async def get_all_subscribers():
-    conn = mailing_list_odbc.get_conn()
+    conn = get_conn()
     return services.get_all_subscribers.get_all_subscribers(conn)
 
 
