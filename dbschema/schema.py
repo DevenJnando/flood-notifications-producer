@@ -21,7 +21,7 @@ class Postcode(Base):
     __tablename__ = "postcodes"
     id: Mapped[UUID] = mapped_column(default=uuid4, server_default=FetchedValue(), primary_key=True)
     postcode: Mapped[str] = mapped_column(String(8))
-    subscriber_id = mapped_column(ForeignKey("subscribers.id"))
+    subscriber_id: Mapped[UUID] = mapped_column(ForeignKey("subscribers.id"))
     subscriber: Mapped[Subscriber] = relationship(back_populates="postcodes")
     def __repr__(self) -> str:
         return f"Address(id={self.id!r}, postcode={self.postcode!r})"

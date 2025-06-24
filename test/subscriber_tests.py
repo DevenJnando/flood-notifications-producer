@@ -40,33 +40,64 @@ def test_get_subscriber_by_id_exists(test_db):
         query = select("*").where(Subscriber.email == "test@test123.com")
         results = current_session.execute(query).all()
         correct_id = str(UUID(results[0].id))
-    response = client.get("/subscribers/{}".format(correct_id))
+    response = client.get("/subscribers/get/id/{}".format(correct_id))
     assert response.status_code == HTTPStatus.OK
     assert response.json().get("id") == correct_id
 
 
 def test_get_subscriber_by_id_does_not_exist(test_db):
     non_existent_id: str = str(uuid4())
-    response = client.get("/subscribers/{}".format(non_existent_id))
+    response = client.get("/subscribers/get/id/{}".format(non_existent_id))
+    assert response.status_code == HTTPStatus.NOT_FOUND
+
+
+def test_get_subscriber_by_email_exists(test_db):
+    correct_email: str = ""
+    with app.main.session() as current_session:
+        query = select("*").where(Subscriber.email == "test@test123.com")
+        results = current_session.execute(query).all()
+        correct_email = results[0].email
+    response = client.get("/subscribers/get/email/{}".format(correct_email))
+    assert response.status_code == HTTPStatus.OK
+    assert response.json().get("email") == correct_email
+
+
+def test_get_subscriber_by_email_does_not_exist(test_db):
+    non_existent_email: str = "itwasmadeup@byawriter.com"
+    response = client.get("/subscribers/get/email/{}".format(non_existent_email))
     assert response.status_code == HTTPStatus.NOT_FOUND
 
 
 def test_add_new_subscriber(test_db):
     response = client.post("/subscribers/add",
-                           json={"email": "newguy@test123.com"})
+                           data={"email": "newguy@newmail.com",
+                                 "postcodes": [
+                                     "G769DQ",
+                                     "BT97FX"
+                                 ]})
     assert response.status_code == HTTPStatus.CREATED
 
 
 def test_add_existing_subscriber(test_db):
     response = client.post("/subscribers/add",
-                           json={"email": "petergriffin@test123.com"})
+                           data={"email": "petergriffin@test123.com",
+                                 "postcodes": [
+                                     "G769DQ",
+                                     "BT97FX"
+                                 ]})
     assert response.status_code == HTTPStatus.CONFLICT
 
 
 def test_add_subscriber_non_valid_email(test_db):
     response = client.post("/subscribers/add",
-                           json={"email": "<script> "
+                           data={"email": "<script> "
                                           "console.log('doing naughty things') "
-                                          "</script>"}
+                                          "</script>",
+                                 "postcodes": [
+                                     "G769DQ",
+                                     "BT97FX"
+                                 ]
+                                 }
                            )
-    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+    assert response.status_code == HTTPStatus.NOT_ACCEPTABLE
+
