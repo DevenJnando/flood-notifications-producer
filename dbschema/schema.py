@@ -1,7 +1,8 @@
 from typing import List
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from sqlalchemy import String, ForeignKey
+from sqlalchemy.schema import FetchedValue
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.orm import relationship
@@ -10,7 +11,7 @@ from dbschema.base import Base
 
 class Subscriber(Base):
     __tablename__ = "subscribers"
-    id: Mapped[UUID] = mapped_column(primary_key=True)
+    id: Mapped[UUID] = mapped_column(default=uuid4, server_default=FetchedValue(), primary_key=True)
     email: Mapped[str] = mapped_column(String(30))
     postcodes: Mapped[List["Postcode"]] = relationship(back_populates="subscriber")
     def __repr__(self) -> str:
@@ -18,7 +19,7 @@ class Subscriber(Base):
 
 class Postcode(Base):
     __tablename__ = "postcodes"
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[UUID] = mapped_column(default=uuid4, server_default=FetchedValue(), primary_key=True)
     postcode: Mapped[str] = mapped_column(String(8))
     subscriber_id = mapped_column(ForeignKey("subscribers.id"))
     subscriber: Mapped[Subscriber] = relationship(back_populates="postcodes")

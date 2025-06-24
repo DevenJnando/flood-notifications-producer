@@ -5,3 +5,5 @@ pydantic
 azure-identity
 python-dotenv
 sqlalchemy
+requests
+pytest
