@@ -10,14 +10,14 @@ import app.main
 from dbschema.base import Base
 from dbschema.schema import Subscriber
 
-app.main.engine = create_engine("sqlite+pysqlite:///:testdb.db:", echo=True)
-app.main.session = sessionmaker(app.main.engine, expire_on_commit=False)
+app.main.mailing_list_engine = create_engine("sqlite+pysqlite:///:testdb.db:", echo=True)
+app.main.session = sessionmaker(app.main.mailing_list_engine, expire_on_commit=False)
 
 client = TestClient(app.main.app)
 
 @pytest.fixture()
 def test_db():
-    Base.metadata.create_all(app.main.engine)
+    Base.metadata.create_all(app.main.mailing_list_engine)
     with app.main.session() as current_session:
         subscriber_1 = Subscriber(email="test@test123.com")
         subscriber_2 = Subscriber(email="petergriffin@test123.com")
@@ -25,7 +25,7 @@ def test_db():
         current_session.add_all([subscriber_1, subscriber_2, subscriber_3])
         current_session.commit()
     yield
-    Base.metadata.drop_all(app.main.engine)
+    Base.metadata.drop_all(app.main.mailing_list_engine)
 
 
 def test_get_all_subscribers(test_db):
