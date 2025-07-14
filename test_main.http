@@ -12,3 +12,8 @@ Accept: application/json
 
 GET http://127.0.0.1:8000/subscribers/all
 Accept: application/json
+
+###
+
+GET http://127.0.0.1:8000/latestfloods/test
+Accept: application/json

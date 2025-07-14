@@ -1,15 +1,16 @@
+from azure.cosmos import CosmosClient
 from fastapi import FastAPI
 from sqlalchemy import Engine
 from sqlalchemy.orm import sessionmaker
 
+from connections.cosmosdb_client import create_cosmos_db_client
 from routes import subscribers, postcodes, latest_floods
 from connections.database_orm import (get_az_mailing_list_engine,
-                                      get_az_postcode_geo_data_engine,
                                       get_sessionmaker)
 
 app: FastAPI = FastAPI()
 mailing_list_engine: Engine = get_az_mailing_list_engine()
-postcode_geo_data_engine: Engine = get_az_postcode_geo_data_engine()
+postcodes_cosmos_client: CosmosClient = create_cosmos_db_client()
 session: sessionmaker = get_sessionmaker(mailing_list_engine)
 
 app.include_router(subscribers.router)

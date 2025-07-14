@@ -4,7 +4,6 @@ from uuid import UUID
 
 from fastapi import APIRouter, Form
 import app.main
-from dbschema.schema import Subscriber, Postcode
 from models.subscriber_form import SubscriberForm
 from services.subscriber_service import (get_all_subscribers,
                                          get_subscriber_by_id,

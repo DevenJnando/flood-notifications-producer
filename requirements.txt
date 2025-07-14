@@ -9,3 +9,4 @@ requests
 pytest
 python-multipart
 email-validator
+azure-cosmos
