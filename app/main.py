@@ -1,17 +1,11 @@
-from azure.cosmos import CosmosClient
 from fastapi import FastAPI
-from sqlalchemy import Engine
-from sqlalchemy.orm import sessionmaker
+import uvicorn
+import logging
 
-from connections.cosmosdb_client import create_cosmos_db_client
-from routes import subscribers, postcodes, latest_floods
-from connections.database_orm import (get_az_mailing_list_engine,
-                                      get_sessionmaker)
+from app.routes import latest_floods, subscribers, postcodes
 
 app: FastAPI = FastAPI()
-mailing_list_engine: Engine = get_az_mailing_list_engine()
-postcodes_cosmos_client: CosmosClient = create_cosmos_db_client()
-session: sessionmaker = get_sessionmaker(mailing_list_engine)
+logger = logging.getLogger("uvicorn.error")
 
 app.include_router(subscribers.router)
 app.include_router(postcodes.router)
@@ -21,3 +15,6 @@ app.include_router(latest_floods.router)
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
+
+if __name__ == "__main__":
+    uvicorn.run(app, log_level="info")

@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from models.coordinates import Coordinates
+from app.models.coordinates import Coordinates
 
 class Envelope(BaseModel):
     lowerCorner: Coordinates

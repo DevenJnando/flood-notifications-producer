@@ -26,7 +26,7 @@ except KeyError:
 credential: DefaultAzureCredential = DefaultAzureCredential()
 
 
-def create_cosmos_db_client():
+def __create_cosmos_db_client():
     try:
         return CosmosClient(cosmos_endpoint, credential=credential)
     except AzureMissingResourceHttpError:
@@ -72,3 +72,5 @@ def get_full_postcodes_container(client: CosmosClient, area_code: str):
                 )
     except AzureMissingResourceHttpError:
         return None
+
+postcodes_cosmos_client: CosmosClient = __create_cosmos_db_client()

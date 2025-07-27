@@ -6,7 +6,7 @@ from sqlalchemy.schema import FetchedValue
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.orm import relationship
-from dbschema.base import Base
+from app.dbschema.base import Base
 
 
 class Subscriber(Base):

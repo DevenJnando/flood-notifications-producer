@@ -3,12 +3,12 @@ from uuid import UUID, uuid4
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, Engine, insert, select
+from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 
 import app.main
-from dbschema.base import Base
-from dbschema.schema import Subscriber
+from app.dbschema.base import Base
+from app.dbschema.schema import Subscriber
 
 app.main.mailing_list_engine = create_engine("sqlite+pysqlite:///:testdb.db:", echo=True)
 app.main.session = sessionmaker(app.main.mailing_list_engine, expire_on_commit=False)

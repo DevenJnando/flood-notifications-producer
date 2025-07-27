@@ -10,10 +10,14 @@ except KeyError:
     mailing_list_connection_string = "DefaultAzureCredential"
 
 
-def get_az_mailing_list_engine() -> Engine:
+def __get_az_mailing_list_engine() -> Engine:
     return create_engine("mssql+pyodbc:///?odbc_connect={}".format(mailing_list_connection_string))
 
-def get_sessionmaker(engine: Engine) -> sessionmaker:
+def __get_sessionmaker(engine: Engine) -> sessionmaker:
     return sessionmaker(engine, expire_on_commit=False)
+
+
+mailing_list_engine: Engine = __get_az_mailing_list_engine()
+session: sessionmaker = __get_sessionmaker(mailing_list_engine)
 
 

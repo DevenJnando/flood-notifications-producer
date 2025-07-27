@@ -1,15 +1,15 @@
 import asyncio
 
-from cosmos.cosmos_functions import get_shard_keys
-from cosmos.flood_to_postcode_operations import (areas_in_flood_range,
-                                                 districts_in_area,
-                                                 districts_in_flood_range,
-                                                 full_postcodes_in_flood_range)
-from test_flood_geometry import test_geo, test_geo2
+from geojson import Polygon, MultiPolygon
+
+from app.cosmos.cosmos_functions import get_shard_keys
+from app.cosmos.flood_to_postcode_operations import (areas_in_flood_range,
+                                                     districts_in_area,
+                                                     districts_in_flood_range,
+                                                     full_postcodes_in_flood_range)
 
 
-async def postcodes_in_flood_range():
-    flood_geometries = [test_geo(), test_geo2()]
+async def postcodes_in_flood_range(flood_geometries: list[Polygon | MultiPolygon]):
     database_names: list[str] | None = get_shard_keys()
     areas = [areas_in_flood_range(flood_geometry, database_names) for flood_geometry in flood_geometries]
     areas_results = await asyncio.gather(*areas)

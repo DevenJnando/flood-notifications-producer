@@ -5,10 +5,10 @@ from typing import Any
 from azure.core.paging import ItemPaged
 from fastapi import HTTPException
 
-from cosmos.cosmos_functions import (match_area_to_flood_geometry,
-                                     match_districts_to_area,
-                                     match_district_to_geometry,
-                                     match_full_postcode_to_geometry)
+from app.cosmos.cosmos_functions import (match_area_to_flood_geometry,
+                                         match_districts_to_area,
+                                         match_district_to_geometry,
+                                         match_full_postcode_to_geometry)
 
 
 async def match_areas_to_flood_geometry(flood_geometry: dict[str, Any], database_names: list[str]):
