@@ -16,8 +16,11 @@ def __get_az_mailing_list_engine() -> Engine:
 def __get_sessionmaker(engine: Engine) -> sessionmaker:
     return sessionmaker(engine, expire_on_commit=False)
 
+__mailing_list_engine: Engine = __get_az_mailing_list_engine()
+__session: sessionmaker = __get_sessionmaker(__mailing_list_engine)
 
-mailing_list_engine: Engine = __get_az_mailing_list_engine()
-session: sessionmaker = __get_sessionmaker(mailing_list_engine)
+def get_engine() -> Engine:
+    return __mailing_list_engine
 
-
+def get_session() -> sessionmaker:
+    return __session

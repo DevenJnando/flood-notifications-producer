@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 import uvicorn
 import logging
 
@@ -10,11 +10,6 @@ logger = logging.getLogger("uvicorn.error")
 app.include_router(subscribers.router)
 app.include_router(postcodes.router)
 app.include_router(latest_floods.router)
-
-
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
 
 if __name__ == "__main__":
     uvicorn.run(app, log_level="info")
