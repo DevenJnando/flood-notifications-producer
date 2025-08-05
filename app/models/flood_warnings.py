@@ -7,10 +7,10 @@ class FloodWarnings(BaseModel, arbitrary_types_allowed=True):
     description: str | None = None
     eaAreaName: str
     eaRegionName: str | None = None
-    floodArea: FloodArea
+    floodArea: FloodArea | None = None
     floodAreaGeoJson: FeatureCollection | None = None
-    floodAreaID: str
-    isTidal: str | None = None
+    floodAreaID: str | None = None
+    isTidal: bool | None = None
     message: str
     severity: str
     severityLevel: int

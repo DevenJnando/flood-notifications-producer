@@ -1,19 +1,21 @@
 import unittest
-from http import HTTPStatus
 from uuid import UUID, uuid4
 
-from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 
-import app.connections.database_orm as orm
-from app.main import app
 from app.dbschema.base import Base
 from app.dbschema.schema import Subscriber
+from app.services.subscriber_service import (get_all_subscribers,
+                                             get_subscriber_by_id,
+                                             get_subscriber_by_email,
+                                             add_new_subscriber
+                                             )
+from app.models.subscriber_form import SubscriberForm
 
-client = TestClient(app)
+from fastapi import HTTPException
 
-mailing_list_engine = create_engine("sqlite+pysqlite:///:testdb.db:", echo=True)
+mailing_list_engine = create_engine("sqlite+pysqlite:///mock-database/:testdb.db:", echo=True)
 session = sessionmaker(mailing_list_engine, expire_on_commit=False)
 
 def get_session() -> sessionmaker:
@@ -24,7 +26,6 @@ class SubscriberTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        app.dependency_overrides[orm.get_session] = get_session
         Base.metadata.create_all(mailing_list_engine)
         with session() as current_session:
             subscriber_1 = Subscriber(email="test@test123.com")
@@ -39,26 +40,23 @@ class SubscriberTests(unittest.TestCase):
 
 
     def test_get_all_subscribers(self):
-        response = client.get("/subscribers/all")
-        assert response.status_code == HTTPStatus.OK
-        assert len(response.json()) == 3 or len(response.json()) == 4
+        subscribers = get_all_subscribers(session=session)
+        assert len(subscribers) == 3 or len(subscribers) == 4
 
 
     def test_get_subscriber_by_id_exists(self):
-        correct_id: str = ""
+        correct_id: UUID
         with session() as current_session:
             query = select("*").where(Subscriber.email == "test@test123.com")
             results = current_session.execute(query).all()
-            correct_id = str(UUID(results[0].id))
-        response = client.get("/subscribers/get/id/{}".format(correct_id))
-        assert response.status_code == HTTPStatus.OK
-        assert response.json().get("id") == correct_id
+            correct_id = UUID(results[0].id)
+        subscriber = get_subscriber_by_id(session=session, subscriber_id=correct_id)
+        assert subscriber.id == correct_id
 
 
     def test_get_subscriber_by_id_does_not_exist(self):
-        non_existent_id: str = str(uuid4())
-        response = client.get("/subscribers/get/id/{}".format(non_existent_id))
-        assert response.status_code == HTTPStatus.NOT_FOUND
+        non_existent_id: UUID = uuid4()
+        self.assertRaises(HTTPException, lambda: get_subscriber_by_id(session=session, subscriber_id=non_existent_id))
 
 
     def test_get_subscriber_by_email_exists(self):
@@ -67,49 +65,49 @@ class SubscriberTests(unittest.TestCase):
             query = select("*").where(Subscriber.email == "test@test123.com")
             results = current_session.execute(query).all()
             correct_email = results[0].email
-        response = client.get("/subscribers/get/email/{}".format(correct_email))
-        assert response.status_code == HTTPStatus.OK
-        assert response.json().get("email") == correct_email
+        subscriber = get_subscriber_by_email(session=session, subscriber_email=correct_email)
+        assert subscriber.email == correct_email
 
 
     def test_get_subscriber_by_email_does_not_exist(self):
         non_existent_email: str = "itwasmadeup@byawriter.com"
-        response = client.get("/subscribers/get/email/{}".format(non_existent_email))
-        assert response.status_code == HTTPStatus.NOT_FOUND
+        self.assertRaises(HTTPException, lambda: get_subscriber_by_email(session=session, subscriber_email=non_existent_email))
 
 
     def test_add_new_subscriber(self):
-        response = client.post("/subscribers/add",
-                               data={"email": "newguy@newmail.com",
-                                     "postcodes": [
+        email = "newguy@newmail.com"
+        subscriber_form = SubscriberForm(email=email,
+                                     postcodes=[
                                          "G769DQ",
                                          "BT97FX"
-                                     ]})
-        assert response.status_code == HTTPStatus.CREATED
+                                     ])
+        add_new_subscriber(session=session, subscriber_form=subscriber_form)
+        new_subscriber = get_subscriber_by_email(session=session, subscriber_email=email)
+        assert new_subscriber.email == email
 
 
     def test_add_existing_subscriber(self):
-        response = client.post("/subscribers/add",
-                               data={"email": "petergriffin@test123.com",
-                                     "postcodes": [
-                                         "G769DQ",
-                                         "BT97FX"
-                                     ]})
-        assert response.status_code == HTTPStatus.CONFLICT
+        email = "petergriffin@test123.com"
+        subscriber_form = SubscriberForm(email=email,
+                                         postcodes=[
+                                             "G769DQ",
+                                             "BT97FX"
+                                         ])
+        self.assertRaises(HTTPException, lambda: add_new_subscriber(session=session, subscriber_form=subscriber_form))
 
 
     def test_add_subscriber_non_valid_email(self):
-        response = client.post("/subscribers/add",
-                               data={"email": "<script> "
-                                              "console.log('doing naughty things') "
-                                              "</script>",
-                                     "postcodes": [
-                                         "G769DQ",
-                                         "BT97FX"
-                                     ]
-                                     }
-                               )
-        assert response.status_code == HTTPStatus.NOT_ACCEPTABLE
+        email = "<script> "\
+                "console.log('doing naughty things') "\
+                "</script>"
+
+        subscriber_form = SubscriberForm(email=email,
+                                         postcodes=[
+                                             "G769DQ",
+                                             "BT97FX"
+                                         ])
+        self.assertRaises(HTTPException, lambda: add_new_subscriber(session=session, subscriber_form=subscriber_form))
+
 
 if __name__ == "__main__":
     unittest.main()
