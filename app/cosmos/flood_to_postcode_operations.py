@@ -2,13 +2,15 @@ import asyncio
 from http import HTTPStatus
 from typing import Any
 
+from geojson import Polygon, MultiPolygon
 from azure.core.paging import ItemPaged
 from fastapi import HTTPException
 
 from app.cosmos.cosmos_functions import (match_area_to_flood_geometry,
                                          match_districts_to_area,
                                          match_district_to_geometry,
-                                         match_full_postcode_to_geometry)
+                                         match_full_postcode_to_geometry,
+                                         get_shard_keys)
 
 
 async def match_areas_to_flood_geometry(flood_geometry: dict[str, Any], database_names: list[str]):
@@ -57,6 +59,7 @@ async def districts_in_area(areas: list[dict[str, Any]]):
     matched_districts = list(set(matched_districts))
     return matched_districts
 
+
 async def districts_in_flood_range(flood_geometry: dict[str, Any], districts: list[str]):
     overlapping_districts: list[str] = []
     districts_in_range: list[ItemPaged[dict] | None] = await match_districts_to_flood_geometry(flood_geometry, districts)
@@ -82,3 +85,21 @@ async def full_postcodes_in_flood_range(flood_geometry: dict[str, Any], district
                         "feature": res["features"][0]}
             full_postcodes.append(postcode)
     return full_postcodes
+
+
+async def collect_postcodes_in_flood_range(flood_area_id: str, flood_geometries: list[Polygon | MultiPolygon]):
+    database_names: list[str] | None = get_shard_keys()
+    areas = [areas_in_flood_range(flood_geometry, database_names) for flood_geometry in flood_geometries]
+    areas_results = await asyncio.gather(*areas)
+    area_districts = [districts_in_area(area) for area in areas_results]
+    districts_results = await asyncio.gather(*area_districts)
+    flooded_districts = []
+    for districts in districts_results:
+        flooded_districts += [districts_in_flood_range(flood_geometry, districts) for flood_geometry in flood_geometries]
+    flooded_districts_results = await asyncio.gather(*flooded_districts)
+    flooded_postcodes = []
+    for flooded_districts in flooded_districts_results:
+        flooded_postcodes += [full_postcodes_in_flood_range(flood_geometry, flooded_districts) for flood_geometry in flood_geometries]
+    flooded_postcodes_results = await asyncio.gather(*flooded_postcodes)
+    return {"id": flood_area_id, "floodPostcodes": flooded_postcodes_results}
+

@@ -19,8 +19,8 @@ def get_shard_keys() -> list[str] | None:
         for shard_key in shard_keys:
             database_names.append(shard_key["databaseName"])
         return database_names
-    except CosmosHttpResponseError:
-        return None
+    except CosmosHttpResponseError as e:
+        raise e
 
 
 async def match_area_to_flood_geometry(flood_geometry: dict[str, Any], database_name: str) -> ItemPaged[dict] | None:
@@ -31,8 +31,8 @@ async def match_area_to_flood_geometry(flood_geometry: dict[str, Any], database_
         return None
     try:
         return container.query_items(query=area_query(), parameters=parameters, partition_key=prefix)
-    except CosmosHttpResponseError:
-        return None
+    except CosmosHttpResponseError as e:
+        raise e
 
 
 async def match_districts_to_area(area: dict[str, Any]) -> ItemPaged[dict] | None:
@@ -42,30 +42,30 @@ async def match_districts_to_area(area: dict[str, Any]) -> ItemPaged[dict] | Non
         return None
     try:
         return container.query_items(query=districts_query(), parameters=parameters, enable_cross_partition_query=True)
-    except CosmosHttpResponseError:
-        return None
+    except CosmosHttpResponseError as e:
+        raise e
 
 
 async def match_district_to_geometry(flood_geometry: dict[str, Any], district: str) -> ItemPaged[dict] | None:
     parameters = [dict(name="@geometry", value=flood_geometry)]
-    area_code = re.split(r'(^[^\d]+)', district)[1:][0]
+    area_code = re.split(r'(^\D+)', district)[1:][0]
     container = cosmosdb_client.get_postcodes_district_container(postcodes_cosmos_client, area_code)
     if container is None:
         return None
     try:
         return container.query_items(query=districts_query(), parameters=parameters, partition_key=district)
-    except CosmosHttpResponseError:
-        return None
+    except CosmosHttpResponseError as e:
+        raise e
 
 
 async def match_full_postcode_to_geometry(flood_geometry: dict[str, Any], district: str) -> ItemPaged[dict] | None:
     parameters = [dict(name="@geometry", value=flood_geometry)]
-    area_code = re.split(r'(^[^\d]+)', district)[1:][0]
+    area_code = re.split(r'(^\D+)', district)[1:][0]
     container = cosmosdb_client.get_full_postcodes_container(postcodes_cosmos_client, area_code)
     if container is None:
         return None
     try:
         return container.query_items(query=districts_query(), parameters=parameters, partition_key=district)
-    except CosmosHttpResponseError:
-        return None
+    except CosmosHttpResponseError as e:
+        raise e
 

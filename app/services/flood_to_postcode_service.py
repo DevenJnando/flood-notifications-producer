@@ -6,15 +6,16 @@ from json import JSONDecodeError
 from fastapi import HTTPException
 from requests import get
 
-from geojson import Polygon, MultiPolygon, loads
+from geojson import Polygon, MultiPolygon, FeatureCollection, loads
 from pydantic_core._pydantic_core import PydanticSerializationError
 
-from app.cosmos.cosmos_functions import get_shard_keys
-from app.cosmos.flood_to_postcode_operations import (areas_in_flood_range,
-                                                     districts_in_area,
-                                                     districts_in_flood_range,
-                                                     full_postcodes_in_flood_range)
+from app.cosmos.flood_to_postcode_operations import collect_postcodes_in_flood_range
+from app.services.geometry_subdivision_service import subdivide_from_feature_collection
+
 from app.models.latest_flood_update import LatestFloodUpdate
+
+
+SEGMENT_THRESHOLD = 0.1
 
 
 async def get_geojson_from_floods(flood_update: LatestFloodUpdate) -> dict | None:
@@ -52,18 +53,14 @@ async def get_geojson_from_floods(flood_update: LatestFloodUpdate) -> dict | Non
     return flood_update_dict
 
 
-async def postcodes_in_flood_range(flood_geometries: list[Polygon | MultiPolygon]):
-    database_names: list[str] | None = get_shard_keys()
-    areas = [areas_in_flood_range(flood_geometry, database_names) for flood_geometry in flood_geometries]
-    areas_results = await asyncio.gather(*areas)
-    area_districts = [districts_in_area(area) for area in areas_results]
-    districts_results = await asyncio.gather(*area_districts)
-    flooded_districts = []
-    for districts in districts_results:
-        flooded_districts += [districts_in_flood_range(flood_geometry, districts) for flood_geometry in flood_geometries]
-    flooded_districts_results = await asyncio.gather(*flooded_districts)
-    flooded_postcodes = []
-    for flooded_districts in flooded_districts_results:
-        flooded_postcodes += [full_postcodes_in_flood_range(flood_geometry, flooded_districts) for flood_geometry in flood_geometries]
-    flooded_postcodes_results = await asyncio.gather(*flooded_postcodes)
-    return flooded_postcodes_results
+async def get_all_postcodes_in_flood_range(floods: list[dict]):
+    geometries_with_flood_area_ids: list[dict[str, str | list[Polygon | MultiPolygon]]] = []
+    for flood in floods:
+        flood_area_id: str = flood.get("floodAreaId")
+        flood_area_geojson: FeatureCollection = flood.get("floodAreaGeoJson")
+        geometries: list[Polygon | MultiPolygon] = subdivide_from_feature_collection(flood_area_geojson, SEGMENT_THRESHOLD)
+        geometries_with_flood_area_ids.append({"id": flood_area_id, "geometries": geometries})
+    flood_postcodes = [collect_postcodes_in_flood_range(geo_with_id.get("id"), geo_with_id.get("geometries"))
+                       for geo_with_id in geometries_with_flood_area_ids]
+    flood_postcodes_results = await asyncio.gather(*flood_postcodes)
+    return flood_postcodes_results
