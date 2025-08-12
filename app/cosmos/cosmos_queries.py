@@ -1,4 +1,4 @@
-COSMOS_QUERY_CHARACTER_LIMIT = 100000
+COSMOS_QUERY_CHARACTER_LIMIT = 544720
 
 def area_query():
     return """select c.id, c.areaCode, c.features
