@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
-from models.metadata import MetaData
-from models.flood_warnings import FloodWarnings
+from app.models.metadata import MetaData
+from app.models.flood_warnings import FloodWarnings
 
 class LatestFloodUpdate(BaseModel):
     context: str = Field(..., alias="@context")
