@@ -11,7 +11,7 @@ from app.services.geometry_subdivision_service import (get_geometry_from_geojson
                                                        subdivide,
                                                        subdivide_from_feature_collection)
 
-from app.cosmos.cosmos_queries import COSMOS_QUERY_CHARACTER_LIMIT, area_query
+from app.cosmos.cosmos_queries import COSMOS_QUERY_CHARACTER_LIMIT, match_areas_to_geometry_query
 
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 THRESHOLD = 0.1
@@ -126,7 +126,7 @@ class TestGeometrySubdivision(TestCase):
         for resultant_geom in resultant_geometries:
             assert isinstance(resultant_geom, dict)
             resultant_geom_as_string = json.dumps(resultant_geom)
-            assert len(resultant_geom_as_string) + len(area_query()) < COSMOS_QUERY_CHARACTER_LIMIT
+            assert len(resultant_geom_as_string) + len(match_areas_to_geometry_query()) < COSMOS_QUERY_CHARACTER_LIMIT
 
 
 

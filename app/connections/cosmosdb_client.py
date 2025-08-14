@@ -1,5 +1,7 @@
 from azure.common import AzureMissingResourceHttpError
 from azure.cosmos import CosmosClient
+from azure.cosmos.container import ContainerProxy
+from azure.cosmos.aio import CosmosClient as AsyncCosmosClient
 from azure.identity import DefaultAzureCredential
 
 from os import getenv
@@ -33,44 +35,44 @@ def __create_cosmos_db_client():
         return None
 
 
-def get_shardmap_container(client: CosmosClient):
+def get_shardmap_container(client : CosmosClient | AsyncCosmosClient) -> ContainerProxy:
     try:
         return (client
                 .get_database_client(shard_map_database)
                 .get_container_client(shard_map_container)
                 )
-    except AzureMissingResourceHttpError:
-        return None
+    except AzureMissingResourceHttpError as e:
+        raise e
 
 
-def get_postcodes_area_container(client: CosmosClient, database_name: str):
+def get_postcodes_area_container(client: CosmosClient | AsyncCosmosClient, database_name: str) -> ContainerProxy:
     try:
         prefix = database_name.split("-")[0]
         return (client
                 .get_database_client(database_name)
                 .get_container_client(prefix + area_container_suffix)
                 )
-    except AzureMissingResourceHttpError:
-        return None
+    except AzureMissingResourceHttpError as e:
+        raise e
 
 
-def get_postcodes_district_container(client: CosmosClient, area_code: str):
+def get_postcodes_district_container(client: CosmosClient | AsyncCosmosClient, area_code: str) -> ContainerProxy:
     try:
         return (client
                 .get_database_client(area_code + postcode_database_suffix)
                 .get_container_client(area_code + district_container_suffix)
                 )
-    except AzureMissingResourceHttpError:
-        return None
+    except AzureMissingResourceHttpError as e:
+        raise e
 
 
-def get_full_postcodes_container(client: CosmosClient, area_code: str):
+def get_full_postcodes_container(client: CosmosClient | AsyncCosmosClient, area_code: str) -> ContainerProxy:
     try:
         return (client
                 .get_database_client(area_code + postcode_database_suffix)
                 .get_container_client(area_code + full_postcode_container_suffix)
                 )
-    except AzureMissingResourceHttpError:
-        return None
+    except AzureMissingResourceHttpError as e:
+        raise e
 
 postcodes_cosmos_client: CosmosClient = __create_cosmos_db_client()

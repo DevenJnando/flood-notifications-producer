@@ -7,7 +7,7 @@ from geojson import MultiPolygon as GeojsonMultiPolygon
 from geojson import FeatureCollection, Feature
 import json
 
-from app.cosmos.cosmos_queries import COSMOS_QUERY_CHARACTER_LIMIT, area_query
+from app.cosmos.cosmos_queries import COSMOS_QUERY_CHARACTER_LIMIT, match_areas_to_geometry_query
 
 RECURSION_LIMIT = 250
 
@@ -89,7 +89,7 @@ def subdivide_from_feature_collection(feature_collection: FeatureCollection, cel
     for feature in flood_area_features:
         feature_geometry: GeojsonPolygon | GeojsonMultiPolygon = feature.get("geometry")
         feature_geometry_as_string = json.dumps(feature_geometry)
-        if len(feature_geometry_as_string) + len(area_query()) >= COSMOS_QUERY_CHARACTER_LIMIT:
+        if len(feature_geometry_as_string) + len(match_areas_to_geometry_query()) >= COSMOS_QUERY_CHARACTER_LIMIT:
             list_of_subdivided_polygons: list[list[Polygon]] = (
                 subdivide(feature_geometry_as_string, cell_surface_threshold))
             for subdivided_polygons in list_of_subdivided_polygons:

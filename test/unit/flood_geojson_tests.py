@@ -5,7 +5,7 @@ from unittest.async_case import IsolatedAsyncioTestCase
 
 from pydantic_core._pydantic_core import ValidationError
 
-from app.services.flood_to_postcode_service import get_geojson_from_floods
+from app.services.flood_update_service import get_geojson_from_floods
 from app.models.latest_flood_update import LatestFloodUpdate
 
 from fastapi import HTTPException

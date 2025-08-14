@@ -2,7 +2,7 @@ from fastapi import APIRouter
 
 from app.models.latest_flood_update import LatestFloodUpdate
 
-from app.services.flood_to_postcode_service import get_all_postcodes_in_flood_range, get_geojson_from_floods
+from app.services.flood_update_service import get_all_postcodes_in_flood_range, get_geojson_from_floods
 
 router = APIRouter()
 
