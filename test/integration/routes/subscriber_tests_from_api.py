@@ -1,3 +1,4 @@
+import os
 import unittest
 from http import HTTPStatus
 from uuid import UUID, uuid4
@@ -13,7 +14,9 @@ from app.dbschema.schema import Subscriber
 
 client = TestClient(app)
 
-mailing_list_engine = create_engine("sqlite+pysqlite:///mock-database/:testdb.db:", echo=True)
+root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
+
+mailing_list_engine = create_engine("sqlite+pysqlite:///" + root_dir + "/mock-database/:testdb.db:", echo=True)
 session = sessionmaker(mailing_list_engine, expire_on_commit=False)
 
 def get_session() -> sessionmaker:

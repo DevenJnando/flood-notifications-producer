@@ -13,7 +13,7 @@ from app.services.geometry_subdivision_service import (get_geometry_from_geojson
 
 from app.cosmos.cosmos_queries import COSMOS_QUERY_CHARACTER_LIMIT, match_areas_to_geometry_query
 
-root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
 THRESHOLD = 0.1
 
 

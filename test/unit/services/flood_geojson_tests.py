@@ -10,9 +10,10 @@ from app.models.latest_flood_update import LatestFloodUpdate
 
 from fastapi import HTTPException
 
-root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
 
 class FloodUpdateTests(IsolatedAsyncioTestCase):
+
 
     async def test_flood_update_happy_path(self):
         test_floods_obj = json.loads(open(root_dir + "/fixtures/test_floods.json").read())
@@ -42,9 +43,8 @@ class FloodUpdateTests(IsolatedAsyncioTestCase):
 
     async def test_flood_update_no_area(self):
         test_floods_obj = json.loads(open(root_dir + "/fixtures/bad_test_floods_no_area.json").read())
-        flood_update = LatestFloodUpdate(**test_floods_obj)
-        with self.assertRaises(HTTPException):
-            await get_geojson_from_floods(flood_update)
+        with self.assertRaises(ValidationError):
+            LatestFloodUpdate(**test_floods_obj)
 
 
     async def test_flood_update_no_polygon(self):

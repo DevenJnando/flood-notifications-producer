@@ -18,7 +18,7 @@ from app.services.geometry_subdivision_service import get_geometry_from_geojson
 
 from shapely import intersects, Geometry, Polygon
 
-root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
 
 relevant_polygon_areas = ["PR"]
 relevant_polygon_districts = ["PR3"]

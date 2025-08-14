@@ -13,3 +13,5 @@ azure-cosmos
 geojson
 shapely
 aiohttp
+redis
+rq

@@ -11,7 +11,7 @@ from shapely import Geometry, Polygon, intersects
 from app.services.postcodes_in_flood_range_service import collect_postcodes_in_flood_range
 from app.services.geometry_subdivision_service import get_geometry_from_geojson
 
-root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
 
 relevant_polygon_areas = ["PR"]
 relevant_multipolygon_areas = ["DL", "HG", "LA"]

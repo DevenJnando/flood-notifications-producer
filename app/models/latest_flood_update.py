@@ -1,8 +1,8 @@
 from pydantic import BaseModel, Field
 from app.models.metadata import MetaData
-from app.models.flood_warnings import FloodWarnings
+from app.models.flood_warning import FloodWarning
 
 class LatestFloodUpdate(BaseModel):
     context: str = Field(..., alias="@context")
     meta: MetaData
-    items: list[FloodWarnings]
+    items: list[FloodWarning]
