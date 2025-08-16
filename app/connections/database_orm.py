@@ -3,6 +3,8 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine, Engine
 from sqlalchemy.orm import sessionmaker
 
+from app.connections.retry_strategy import RetryingQuery
+
 try:
     load_dotenv()
     mailing_list_connection_string = getenv("MAILING_LIST_SQL_CONNECTION_STRING")
@@ -14,7 +16,7 @@ def __get_az_mailing_list_engine() -> Engine:
     return create_engine("mssql+pyodbc:///?odbc_connect={}".format(mailing_list_connection_string))
 
 def __get_sessionmaker(engine: Engine) -> sessionmaker:
-    return sessionmaker(engine, expire_on_commit=False)
+    return sessionmaker(bind=engine, expire_on_commit=False, query_cls=RetryingQuery)
 
 __mailing_list_engine: Engine = __get_az_mailing_list_engine()
 __session: sessionmaker = __get_sessionmaker(__mailing_list_engine)

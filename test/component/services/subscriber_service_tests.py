@@ -1,26 +1,24 @@
-import os
 import unittest
 from uuid import UUID, uuid4
 
-from sqlalchemy import create_engine, select
+from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker
 
-from app.dbschema.base import Base
-from app.dbschema.schema import Subscriber, Postcode
+from app.dbschema.schema import Subscriber
+from app.connections.database_orm import __get_az_mailing_list_engine, __get_sessionmaker
 from app.services.subscriber_service import (get_all_subscribers,
                                              get_subscriber_by_id,
                                              get_subscriber_by_email,
                                              get_subscribers_by_postcode,
-                                             add_new_subscriber
+                                             add_new_subscriber,
+                                             delete_subscriber_by_email
                                              )
 from app.models.subscriber_form import SubscriberForm
 
 from fastapi import HTTPException
 
-root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
-
-mailing_list_engine = create_engine("sqlite+pysqlite:///" + root_dir + "/mock-database/:testdb.db:", echo=True)
-session = sessionmaker(mailing_list_engine, expire_on_commit=False)
+mailing_list_engine = __get_az_mailing_list_engine()
+session = __get_sessionmaker(mailing_list_engine)
 
 def get_session() -> sessionmaker:
     return session
@@ -28,21 +26,10 @@ def get_session() -> sessionmaker:
 
 class SubscriberTests(unittest.TestCase):
 
-    @classmethod
-    def setUpClass(cls):
-        Base.metadata.create_all(mailing_list_engine)
-        with session() as current_session:
-            subscriber_1 = Subscriber(email="test@test123.com")
-            subscriber_2 = Subscriber(email="petergriffin@test123.com")
-            subscriber_3 = Subscriber(email="evil@evilevil.com")
-            postcode_1 = Postcode(postcode="G769DQ", subscriber=subscriber_2)
-            subscriber_2.postcodes.append(postcode_1)
-            current_session.add_all([subscriber_1, subscriber_2, subscriber_3, postcode_1])
-            current_session.commit()
 
     @classmethod
     def tearDownClass(cls):
-        Base.metadata.drop_all(mailing_list_engine)
+        delete_subscriber_by_email(session=session, subscriber_email="newguy@newmail.com")
 
 
     def test_get_all_subscribers(self):
@@ -53,9 +40,9 @@ class SubscriberTests(unittest.TestCase):
     def test_get_subscriber_by_id_exists(self):
         correct_id: UUID
         with session() as current_session:
-            query = select("*").where(Subscriber.email == "test@test123.com")
+            query = select("*").where(Subscriber.email == "petergriffin@test123.com")
             results = current_session.execute(query).all()
-            correct_id = UUID(results[0].id)
+            correct_id = UUID(results[0][0])
         subscriber = get_subscriber_by_id(session=session, subscriber_id=correct_id)
         assert subscriber.id == correct_id
 
@@ -68,9 +55,9 @@ class SubscriberTests(unittest.TestCase):
     def test_get_subscriber_by_email_exists(self):
         correct_email: str = ""
         with session() as current_session:
-            query = select("*").where(Subscriber.email == "test@test123.com")
+            query = select("*").where(Subscriber.email == "petergriffin@test123.com")
             results = current_session.execute(query).all()
-            correct_email = results[0].email
+            correct_email = results[0][1]
         subscriber = get_subscriber_by_email(session=session, subscriber_email=correct_email)
         assert subscriber.email == correct_email
 

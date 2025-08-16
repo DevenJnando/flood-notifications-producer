@@ -1,44 +1,28 @@
-import os
 import unittest
 from http import HTTPStatus
 from uuid import UUID, uuid4
 
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, select
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import select
 
-import app.connections.database_orm as orm
+from app.connections.database_orm import (__get_az_mailing_list_engine,
+                                          __get_sessionmaker)
 from app.main import app
-from app.dbschema.base import Base
 from app.dbschema.schema import Subscriber
+from app.services.subscriber_service import delete_subscriber_by_email
 
 client = TestClient(app)
 
-root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
-
-mailing_list_engine = create_engine("sqlite+pysqlite:///" + root_dir + "/mock-database/:testdb.db:", echo=True)
-session = sessionmaker(mailing_list_engine, expire_on_commit=False)
-
-def get_session() -> sessionmaker:
-    return session
+mailing_list_engine = __get_az_mailing_list_engine()
+session = __get_sessionmaker(mailing_list_engine)
 
 
 class SubscriberTests(unittest.TestCase):
 
-    @classmethod
-    def setUpClass(cls):
-        app.dependency_overrides[orm.get_session] = get_session
-        Base.metadata.create_all(mailing_list_engine)
-        with session() as current_session:
-            subscriber_1 = Subscriber(email="test@test123.com")
-            subscriber_2 = Subscriber(email="petergriffin@test123.com")
-            subscriber_3 = Subscriber(email="evil@evilevil.com")
-            current_session.add_all([subscriber_1, subscriber_2, subscriber_3])
-            current_session.commit()
 
     @classmethod
     def tearDownClass(cls):
-        Base.metadata.drop_all(mailing_list_engine)
+        delete_subscriber_by_email(session=session, subscriber_email="newguy@newmail.com")
 
 
     def test_get_all_subscribers(self):
@@ -50,9 +34,9 @@ class SubscriberTests(unittest.TestCase):
     def test_get_subscriber_by_id_exists(self):
         correct_id: str = ""
         with session() as current_session:
-            query = select("*").where(Subscriber.email == "test@test123.com")
+            query = select("*").where(Subscriber.email == "petergriffin@test123.com")
             results = current_session.execute(query).all()
-            correct_id = str(UUID(results[0].id))
+            correct_id = str(UUID(results[0][0]))
         response = client.get("/subscribers/get/id/{}".format(correct_id))
         assert response.status_code == HTTPStatus.OK
         assert response.json().get("id") == correct_id
@@ -67,9 +51,10 @@ class SubscriberTests(unittest.TestCase):
     def test_get_subscriber_by_email_exists(self):
         correct_email: str = ""
         with session() as current_session:
-            query = select("*").where(Subscriber.email == "test@test123.com")
+            query = select("*").where(Subscriber.email == "petergriffin@test123.com")
             results = current_session.execute(query).all()
-            correct_email = results[0].email
+            print(results)
+            correct_email = results[0][1]
         response = client.get("/subscribers/get/email/{}".format(correct_email))
         assert response.status_code == HTTPStatus.OK
         assert response.json().get("email") == correct_email
