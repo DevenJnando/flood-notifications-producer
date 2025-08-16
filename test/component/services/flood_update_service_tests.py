@@ -10,6 +10,7 @@ from shapely import intersects
 
 from redis.exceptions import ConnectionError
 
+from app.models.floods_with_postcodes import FloodWithPostcodes
 from app.models.latest_flood_update import LatestFloodUpdate
 from app.cache.caching_functions import redis
 from app.services.flood_update_service import get_all_postcodes_in_flood_range, process_flood_updates
@@ -97,19 +98,19 @@ class FloodToPostcodeServiceTests(IsolatedAsyncioTestCase):
             json.loads(open(root_dir + "/fixtures/test_floods_severity_changes.json").read()))
         flood_update: LatestFloodUpdate = LatestFloodUpdate(**test_floods)
         severity_changes_update: LatestFloodUpdate = LatestFloodUpdate(**test_floods_severity_changes)
-        flood_postcodes: list[dict] = await process_flood_updates(flood_update)
+        flood_postcodes: list[FloodWithPostcodes] = await process_flood_updates(flood_update)
         assert len(flood_postcodes) > 0
-        second_run: list[dict] = await process_flood_updates(flood_update)
+        second_run: list[FloodWithPostcodes] = await process_flood_updates(flood_update)
         assert len(second_run) == 0
-        third_run: list[dict] = await process_flood_updates(severity_changes_update)
+        third_run: list[FloodWithPostcodes] = await process_flood_updates(severity_changes_update)
         assert len(third_run) == 2
         expected_results = {
             "122WAF939": "122WAF939",
             "011WAFKB": "011WAFKB"
         }
         for flood in third_run:
-            assert flood.get("floodID") == expected_results.get(flood.get("floodID"))
-        final_run: list[dict] = await process_flood_updates(severity_changes_update)
+            assert flood.id == expected_results.get(flood.id)
+        final_run: list[FloodWithPostcodes] = await process_flood_updates(severity_changes_update)
         assert len(final_run) == 0
 
 

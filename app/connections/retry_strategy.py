@@ -17,7 +17,8 @@ class RetryingQuery(_Query):
             try:
                 return super().__iter__()
             except OperationalError as e:
-                if "server closed the connection unexpectedly" not in str(e):
+                if ("server closed the connection unexpectedly" not in str(e)
+                        or "Login timeout expired" not in str(e)) :
                     raise
                 if attempts <= self.__max_retry_count__:
                     sleep_for = 2 ** (attempts - 1)

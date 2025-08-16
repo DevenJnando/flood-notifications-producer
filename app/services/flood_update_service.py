@@ -9,13 +9,14 @@ from requests import get
 from geojson import Polygon, MultiPolygon, FeatureCollection, loads
 from pydantic_core._pydantic_core import PydanticSerializationError
 
-from app.cache.caching_functions import save_dict_to_cache
-from app.models.flood_warning import FloodWarning
+from app.models.floods_with_postcodes import FloodWithPostcodes
 from app.services.postcodes_in_flood_range_service import collect_postcodes_in_flood_range
 from app.services.geometry_subdivision_service import subdivide_from_feature_collection
 from app.cache.flood_updates_cache import (get_uncached_and_cached_floods_tuple,
                                            cache_flood_severity,
                                            cache_flood_postcodes)
+
+from app.notifications.producer import Producer
 
 from app.models.latest_flood_update import LatestFloodUpdate
 from app.utilities.utilities import flat_map
@@ -76,14 +77,14 @@ async def get_all_postcodes_in_flood_range(floods: list[dict]) -> list[dict[str,
 
 
 async def process_flood_updates(flood_update: LatestFloodUpdate):
-    results: list[dict[str, str | set[str]]] = []
+    results: list[FloodWithPostcodes] = []
     flood_update_dict = await get_geojson_from_floods(flood_update)
     if flood_update_dict is not None:
         floods: list[dict] = flood_update_dict.get("items")
         # retrieves any up-to-date floods with their postcode sets from the cache
-        floods_tuple: tuple[list[dict], list[dict]] = get_uncached_and_cached_floods_tuple(floods)
+        floods_tuple: tuple[list[dict], list[FloodWithPostcodes]] = get_uncached_and_cached_floods_tuple(floods)
         uncached_floods: list[dict] = floods_tuple[0]
-        outdated_cached_floods: list[dict] = floods_tuple[1]
+        outdated_cached_floods: list[FloodWithPostcodes] = floods_tuple[1]
         for outdated_flood in outdated_cached_floods:
             results.append(outdated_flood)
         floods_with_postcodes = await get_all_postcodes_in_flood_range(uncached_floods)
@@ -96,10 +97,9 @@ async def process_flood_updates(flood_update: LatestFloodUpdate):
             for postcode in postcodes:
                 postcode_id = postcode["features"][0]["properties"]["postcodes"]
                 postcode_set.add(postcode_id)
-            flood_with_postcodes_dict: dict[str, str | set[str]] = {
-                "floodID": flood_id,
-                "postcodesInRange": postcode_set
-            }
             cache_flood_postcodes(flood_id, postcode_set)
-            results.append(flood_with_postcodes_dict)
+            flood_with_postcodes: FloodWithPostcodes = FloodWithPostcodes(flood_id, postcode_set)
+            results.append(flood_with_postcodes)
+    producer: Producer = Producer()
+    producer.notify_subscribers(results)
     return results

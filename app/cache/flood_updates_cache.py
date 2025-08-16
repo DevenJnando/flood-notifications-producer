@@ -1,6 +1,8 @@
 from app.cache.caching_functions import *
 from app.env_vars import redis_severity_suffix, redis_postcodes_suffix
 
+from app.models.floods_with_postcodes import FloodWithPostcodes
+
 SEVERE_FLOOD_WARNNING = 1
 FLOOD_WARNING = 2
 FLOOD_ALERT = 3
@@ -86,8 +88,8 @@ def set_flood_postcodes_to_persist(flood_area_id: str) -> None:
 
 
 def get_uncached_and_cached_floods_tuple(floods: list[dict]) \
-        -> tuple[list[dict], list[dict]]:
-    outdated_cached_floods: list[dict] = list()
+        -> tuple[list[dict], list[FloodWithPostcodes]]:
+    outdated_cached_floods: list[FloodWithPostcodes] = list()
     uncached_floods: list[dict] = [flood for flood in floods
                                    if not flood_severity_is_cached(flood.get("floodAreaID"))]
     cached_floods: list[dict] = [flood for flood in floods
@@ -98,10 +100,7 @@ def get_uncached_and_cached_floods_tuple(floods: list[dict]) \
                                                          flood.get("severity"))]
     for flood in cached_floods:
         cached_postcodes: set = get_flood_postcodes_set(flood.get("floodAreaID"))
-        cached_flood_with_postcodes: dict[str, str | set[str]] = {
-            "floodID": flood.get("floodAreaID"),
-            "postcodesInRange": cached_postcodes
-        }
-        outdated_cached_floods.append(cached_flood_with_postcodes)
-    results: tuple[list[dict], list[dict]] = (uncached_floods, outdated_cached_floods)
+        flood_with_postcodes: FloodWithPostcodes = FloodWithPostcodes(flood.get("floodAreaID"), cached_postcodes)
+        outdated_cached_floods.append(flood_with_postcodes)
+    results: tuple[list[dict], list[FloodWithPostcodes]] = (uncached_floods, outdated_cached_floods)
     return results
