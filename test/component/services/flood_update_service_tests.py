@@ -8,6 +8,8 @@ from geojson import Polygon, MultiPolygon
 from shapely import Geometry
 from shapely import intersects
 
+from redis.exceptions import ConnectionError
+
 from app.models.latest_flood_update import LatestFloodUpdate
 from app.cache.caching_functions import redis
 from app.services.flood_update_service import get_all_postcodes_in_flood_range, process_flood_updates
@@ -27,12 +29,18 @@ class FloodToPostcodeServiceTests(IsolatedAsyncioTestCase):
 
     @classmethod
     def setUpClass(cls):
-        redis.flushall()
+        try:
+            redis.flushall()
+        except ConnectionError:
+            raise unittest.SkipTest("Redis not available")
 
 
     @classmethod
     def tearDownClass(cls):
-        redis.flushall()
+        try:
+            redis.flushall()
+        except ConnectionError as e:
+            raise e
 
 
     def verify_polygon_geometries_intersect(self, test_geometry: Geometry, geometry_as_geojson: dict):
@@ -85,13 +93,24 @@ class FloodToPostcodeServiceTests(IsolatedAsyncioTestCase):
 
     async def test_process_flood_update(self):
         test_floods: dict = json.loads(open(root_dir + "/fixtures/test_floods.json").read())
+        test_floods_severity_changes: dict = (
+            json.loads(open(root_dir + "/fixtures/test_floods_severity_changes.json").read()))
         flood_update: LatestFloodUpdate = LatestFloodUpdate(**test_floods)
+        severity_changes_update: LatestFloodUpdate = LatestFloodUpdate(**test_floods_severity_changes)
         flood_postcodes: list[dict] = await process_flood_updates(flood_update)
         assert len(flood_postcodes) > 0
-        for flood in flood_postcodes:
-            logger.log(logging.INFO, f"Flood ID: {flood.get('floodID')}")
         second_run: list[dict] = await process_flood_updates(flood_update)
         assert len(second_run) == 0
+        third_run: list[dict] = await process_flood_updates(severity_changes_update)
+        assert len(third_run) == 2
+        expected_results = {
+            "122WAF939": "122WAF939",
+            "011WAFKB": "011WAFKB"
+        }
+        for flood in third_run:
+            assert flood.get("floodID") == expected_results.get(flood.get("floodID"))
+        final_run: list[dict] = await process_flood_updates(severity_changes_update)
+        assert len(final_run) == 0
 
 
 if __name__ == '__main__':

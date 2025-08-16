@@ -28,6 +28,7 @@ def severity_has_changed(flood_area_id: str, severity_level: int, severity_messa
         severity_message_in_cache: str = flood_severity_dict.get("severity")
         if (severity_level_in_cache != severity_level
                 or severity_message_in_cache != severity_message):
+            cache_flood_severity(flood_area_id, severity_level, severity_message)
             if severity_level_in_cache == NO_LONGER_IN_FORCE:
                 set_flood_severity_to_persist(flood_area_id)
                 set_flood_postcodes_to_persist(flood_area_id)
