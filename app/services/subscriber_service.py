@@ -9,7 +9,7 @@ from sqlalchemy.orm import sessionmaker
 from email_validator import validate_email, EmailNotValidError, ValidatedEmail
 
 from app.dbschema.schema import Subscriber, Postcode
-from app.models.subscriber_form import SubscriberForm
+from app.models.pydantic_models.subscriber_form import SubscriberForm
 
 
 def get_all_subscribers(session: sessionmaker) -> List[Subscriber | None]:

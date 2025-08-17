@@ -1,8 +1,6 @@
-
-
 class FloodWithPostcodes:
 
-    def __init__(self, flood_id, postcode_set):
+    def __init__(self, flood_id: str, postcode_set: set[str]):
         self.id = flood_id
         self.postcode_set = postcode_set
 

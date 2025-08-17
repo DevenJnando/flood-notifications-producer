@@ -13,7 +13,7 @@ from app.services.subscriber_service import (get_all_subscribers,
                                              add_new_subscriber,
                                              delete_subscriber_by_email
                                              )
-from app.models.subscriber_form import SubscriberForm
+from app.models.pydantic_models.subscriber_form import SubscriberForm
 
 from fastapi import HTTPException
 

@@ -1,4 +1,4 @@
-from app.models.floods_with_postcodes import FloodWithPostcodes
+from app.models.objects.floods_with_postcodes import FloodWithPostcodes
 
 
 class Producer:

@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from app.models.flood_area import FloodArea
+from app.models.pydantic_models.flood_area import FloodArea
 from geojson import FeatureCollection
 
 class FloodWarning(BaseModel, arbitrary_types_allowed=True):

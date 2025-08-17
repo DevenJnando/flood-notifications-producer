@@ -4,14 +4,15 @@ import unittest
 from typing import Iterable
 from unittest.async_case import IsolatedAsyncioTestCase
 
-from geojson import Polygon, MultiPolygon
+from geojson import Polygon, MultiPolygon, FeatureCollection
 from shapely import Geometry
 from shapely import intersects
 
 from redis.exceptions import ConnectionError
 
-from app.models.floods_with_postcodes import FloodWithPostcodes
-from app.models.latest_flood_update import LatestFloodUpdate
+from app.models.objects.floods_with_postcodes import FloodWithPostcodes
+from app.models.pydantic_models.flood_warning import FloodWarning
+from app.models.pydantic_models.latest_flood_update import LatestFloodUpdate
 from app.cache.caching_functions import redis
 from app.services.flood_update_service import get_all_postcodes_in_flood_range, process_flood_updates
 from app.services.geometry_subdivision_service import get_geometry_from_geojson
@@ -30,10 +31,12 @@ class FloodToPostcodeServiceTests(IsolatedAsyncioTestCase):
 
     @classmethod
     def setUpClass(cls):
+        cls.redis_down = False
         try:
             redis.flushall()
-        except ConnectionError:
-            raise unittest.SkipTest("Redis not available")
+        except ConnectionError as e:
+            cls.redis_down = True
+            logger.warning(f"Redis connection error: {e}")
 
 
     @classmethod
@@ -41,7 +44,7 @@ class FloodToPostcodeServiceTests(IsolatedAsyncioTestCase):
         try:
             redis.flushall()
         except ConnectionError as e:
-            raise e
+            logger.warning(f"Redis connection error: {e}")
 
 
     def verify_polygon_geometries_intersect(self, test_geometry: Geometry, geometry_as_geojson: dict):
@@ -72,9 +75,12 @@ class FloodToPostcodeServiceTests(IsolatedAsyncioTestCase):
     async def test_get_all_flood_postcode_geometries(self):
         test_floods_with_areas: dict = (
             json.loads(open(root_dir + "/fixtures/test_floods_with_flood_area_geojson.json").read()))
-        floods: list[dict] = test_floods_with_areas["items"]
+        floods: list[dict] = test_floods_with_areas.get("items")
+        for flood in floods:
+            flood["floodAreaGeoJson"] = FeatureCollection(flood["floodAreaGeoJson"]["features"])
+        floods_as_objects: list[FloodWarning] = [FloodWarning(**flood_warning) for flood_warning in floods]
         floods_with_postcodes: list[dict[str, str | list[Polygon | MultiPolygon]]] \
-            = await get_all_postcodes_in_flood_range(floods)
+            = await get_all_postcodes_in_flood_range(floods_as_objects)
         for flood in floods:
             flood_geojson = flood["floodAreaGeoJson"]
             assert isinstance(flood_geojson, dict)
@@ -97,9 +103,18 @@ class FloodToPostcodeServiceTests(IsolatedAsyncioTestCase):
         test_floods_severity_changes: dict = (
             json.loads(open(root_dir + "/fixtures/test_floods_severity_changes.json").read()))
         flood_update: LatestFloodUpdate = LatestFloodUpdate(**test_floods)
-        severity_changes_update: LatestFloodUpdate = LatestFloodUpdate(**test_floods_severity_changes)
         flood_postcodes: list[FloodWithPostcodes] = await process_flood_updates(flood_update)
         assert len(flood_postcodes) > 0
+
+
+    async def test_process_flood_update_with_caching(self):
+        if self.redis_down:
+            self.skipTest("Redis is not available")
+        test_floods: dict = json.loads(open(root_dir + "/fixtures/test_floods.json").read())
+        test_floods_severity_changes: dict = (
+            json.loads(open(root_dir + "/fixtures/test_floods_severity_changes.json").read()))
+        flood_update: LatestFloodUpdate = LatestFloodUpdate(**test_floods)
+        severity_changes_update: LatestFloodUpdate = LatestFloodUpdate(**test_floods_severity_changes)
         second_run: list[FloodWithPostcodes] = await process_flood_updates(flood_update)
         assert len(second_run) == 0
         third_run: list[FloodWithPostcodes] = await process_flood_updates(severity_changes_update)

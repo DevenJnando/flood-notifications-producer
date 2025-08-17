@@ -5,7 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Form, Depends
 from sqlalchemy.orm.session import sessionmaker
 
-from app.models.subscriber_form import SubscriberForm
+from app.models.pydantic_models.subscriber_form import SubscriberForm
 from app.connections.database_orm import get_session
 from app.services.subscriber_service import (get_all_subscribers,
                                              get_subscriber_by_id,
