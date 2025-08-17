@@ -11,7 +11,7 @@ from app.services.subscriber_service import (get_all_subscribers,
                                              get_subscriber_by_id,
                                              get_subscriber_by_email,
                                              get_subscribers_by_postcode,
-                                             add_new_subscriber
+                                             add_new_subscriber, get_all_subscribers_by_postcodes
                                              )
 from app.models.pydantic_models.subscriber_form import SubscriberForm
 
@@ -91,6 +91,20 @@ class SubscriberTests(unittest.TestCase):
     def test_get_subscriber_by_postcode_does_not_exist(self):
         postcode = "DL91DY"
         self.assertRaises(HTTPException, lambda: get_subscribers_by_postcode(session=session, postcode=postcode))
+
+
+    def test_get_subscribers_by_postcodes_exists(self):
+        postcodes: set[str] = {"G769DQ", "BT97FX"}
+        list_of_subscribers: list[Subscriber] = get_all_subscribers_by_postcodes(session=session, postcodes=postcodes)
+        assert len(list_of_subscribers) == 1 or len(list_of_subscribers) == 3
+        for subscriber in list_of_subscribers:
+            assert subscriber.email == "petergriffin@test123.com" or subscriber.email == "newguy@newmail.com"
+
+
+    def test_get_subscriber_by_postcodes_do_not_exist(self):
+        postcode: set[str] = {"DL91DY", "LAY8TF"}
+        list_of_subscribers: list[Subscriber] = get_all_subscribers_by_postcodes(session=session, postcodes=postcode)
+        assert len(list_of_subscribers) == 0
 
 
     def test_add_new_subscriber(self):
