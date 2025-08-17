@@ -9,4 +9,3 @@ class Producer:
 
     def notify_subscribers(self, floods_with_postcodes: list[FloodWithPostcodes]) -> None:
         pass
-    #shit
