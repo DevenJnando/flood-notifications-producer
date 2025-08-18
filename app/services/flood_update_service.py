@@ -14,7 +14,7 @@ from geojson import Polygon, MultiPolygon, loads
 from app.models.objects.flood_geometries import FloodGeometries
 from app.models.pydantic_models.flood_warning import FloodWarning
 from app.models.objects.floods_with_postcodes import FloodWithPostcodes
-from app.services.notification_service import gather_subscribers_to_be_notified
+from app.services.notification_service import notify_subscribers
 from app.services.postcodes_in_flood_range_service import collect_postcodes_in_flood_range
 from app.services.geometry_subdivision_service import subdivide_from_feature_collection
 from app.cache.flood_updates_cache import (get_uncached_and_cached_floods_tuple,
@@ -92,7 +92,7 @@ async def process_flood_updates(flood_update: LatestFloodUpdate):
             cache_flood_severity(flood.floodAreaID, flood.severityLevel, flood.severity)
         results = await get_all_flood_postcodes(uncached_floods, outdated_cached_floods)
     try:
-        worker_queue.enqueue(gather_subscribers_to_be_notified, results, job_timeout=180)
+        worker_queue.enqueue(notify_subscribers, results, job_timeout=180)
     except ConnectionError as e:
         logger.warning(f"Redis Connection Error: {e}")
     return results
