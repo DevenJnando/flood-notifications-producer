@@ -5,7 +5,7 @@ import logging
 from app.routes import latest_floods, subscribers, postcodes
 
 app: FastAPI = FastAPI()
-logger = logging.getLogger("uvicorn.error")
+logger = logging.getLogger("uvicorn.info")
 
 app.include_router(subscribers.router)
 app.include_router(postcodes.router)

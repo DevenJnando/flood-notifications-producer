@@ -1,14 +1,19 @@
+import logging
+
 from fastapi import APIRouter
 
-from app.models.latest_flood_update import LatestFloodUpdate
+from app.models.pydantic_models.latest_flood_update import LatestFloodUpdate
+from app.cache.caching_functions import worker_queue
 
-from app.services.flood_to_postcode_service import get_all_postcodes_in_flood_range, get_geojson_from_floods
+from app.services.flood_update_service import process_flood_updates
 
+logger = logging.getLogger("uvicorn.info")
 router = APIRouter()
 
 @router.post("/latestfloods/")
 async def process_latest_floods(flood_update: LatestFloodUpdate):
-    flood_update_dict = await get_geojson_from_floods(flood_update)
-    if flood_update_dict is not None:
-        floods: list[dict] = flood_update_dict.get("items")
-        flood_postcodes = get_all_postcodes_in_flood_range(floods)
+    logger.info(f"Received latest flood update: {flood_update}")
+    if worker_queue is not None:
+        worker_queue.enqueue(process_flood_updates, flood_update, job_timeout=600)
+    return {"message": "Successfully processed flood update. "
+                       "The associated postcodes are being retrieved by the web queue worker. "}
