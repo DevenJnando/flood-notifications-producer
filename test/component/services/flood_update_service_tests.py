@@ -100,8 +100,6 @@ class FloodToPostcodeServiceTests(IsolatedAsyncioTestCase):
 
     async def test_process_flood_update(self):
         test_floods: dict = json.loads(open(root_dir + "/fixtures/test_floods.json").read())
-        test_floods_severity_changes: dict = (
-            json.loads(open(root_dir + "/fixtures/test_floods_severity_changes.json").read()))
         flood_update: LatestFloodUpdate = LatestFloodUpdate(**test_floods)
         flood_postcodes: list[FloodWithPostcodes] = await process_flood_updates(flood_update)
         assert len(flood_postcodes) > 0
@@ -124,7 +122,7 @@ class FloodToPostcodeServiceTests(IsolatedAsyncioTestCase):
             "011WAFKB": "011WAFKB"
         }
         for flood in third_run:
-            assert flood.id == expected_results.get(flood.id)
+            assert flood.flood.floodAreaID == expected_results.get(flood.flood.floodAreaID)
         final_run: list[FloodWithPostcodes] = await process_flood_updates(severity_changes_update)
         assert len(final_run) == 0
 

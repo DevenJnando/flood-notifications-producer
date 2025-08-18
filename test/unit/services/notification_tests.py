@@ -10,6 +10,7 @@ from app.dbschema.base import Base
 from app.dbschema.schema import Subscriber, Postcode
 from app.models.objects.flood_notification import FloodNotification
 from app.models.objects.floods_with_postcodes import FloodWithPostcodes
+from app.models.pydantic_models.flood_warning import FloodWarning
 from app.services.subscriber_service import get_all_subscribers_by_postcodes
 
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
@@ -23,7 +24,7 @@ def mock_gather_subscribers_to_be_notified(floods_with_postcodes: list[FloodWith
     for flood_with_postcode in floods_with_postcodes:
         subscribers: list[Subscriber] = get_all_subscribers_by_postcodes(session, flood_with_postcode.postcode_set)
         subscribers = [x for x in subscribers if x is not None]
-        notification: FloodNotification = FloodNotification(flood_with_postcode.id, subscribers)
+        notification: FloodNotification = FloodNotification(flood_with_postcode.flood, subscribers)
         notifications.append(notification)
     return notifications
 
@@ -87,33 +88,49 @@ class NotificationTests(unittest.TestCase):
         test_subscriber = Subscriber(email="testemail@testmail.com")
         test_postcode = Postcode(postcode="LA96HG", subscriber=test_subscriber)
         test_subscriber.postcodes.append(test_postcode)
-        test_notification = FloodNotification("test-flood", [test_subscriber])
+        test_floods: list[dict] = json.loads(open(root_dir + "/fixtures/test_floods.json").read()).get("items")
+        test_floods_as_objects: list[FloodWarning] = [FloodWarning(**flood) for flood in test_floods]
+        test_notification = FloodNotification(test_floods_as_objects[0], [test_subscriber])
         mock_gather_method.return_value = [test_notification]
         test_postcodes: list[dict] = json.loads(open(root_dir + "/fixtures/test_floods_postcodes.json").read())
-        test_postcodes_as_objects: list[FloodWithPostcodes] =\
-            [FloodWithPostcodes(postcode.get("floodID"), postcode.get("postcodesInRange"))
-             for postcode in test_postcodes]
+        test_postcodes_as_objects: list[FloodWithPostcodes] = []
+        for test_flood in test_floods_as_objects:
+            for test_postcode in test_postcodes:
+                if test_postcode.get("floodID") == test_flood.floodAreaID:
+                    test_postcodes_as_objects.append(
+                        FloodWithPostcodes(test_flood, test_postcode.get("postcodesInRange")))
         assert mock_gather_method(test_postcodes_as_objects) == [test_notification]
 
 
     @patch("app.services.notification_service.gather_subscribers_to_be_notified")
     def test_gather_subscribers_no_matches_mock_return_value(self, mock_gather_method):
         mock_gather_method.return_value = []
+        test_floods: list[dict] = json.loads(open(root_dir + "/fixtures/test_floods.json").read()).get("items")
+        test_floods_as_objects: list[FloodWarning] = [FloodWarning(**flood) for flood in test_floods]
         test_postcodes: list[dict] = json.loads(open(root_dir + "/fixtures/test_floods_postcodes.json").read())
-        test_postcodes_as_objects = [FloodWithPostcodes(postcode.get("floodID"), postcode.get("postcodesInRange")) for
-                                     postcode in test_postcodes]
+        test_postcodes_as_objects: list[FloodWithPostcodes] = []
+        for test_flood in test_floods_as_objects:
+            for test_postcode in test_postcodes:
+                if test_postcode.get("floodID") == test_flood.floodAreaID:
+                    test_postcodes_as_objects.append(
+                        FloodWithPostcodes(test_flood, test_postcode.get("postcodesInRange")))
         assert mock_gather_method(test_postcodes_as_objects) == []
 
 
     @patch("app.services.notification_service.gather_subscribers_to_be_notified")
     def test_gather_subscribers_mock_method(self, mock_gather_method):
         mock_gather_method.side_effect = mock_gather_subscribers_to_be_notified
+        test_floods: list[dict] = json.loads(open(root_dir + "/fixtures/test_floods.json").read()).get("items")
+        test_floods_as_objects: list[FloodWarning] = [FloodWarning(**flood) for flood in test_floods]
         test_postcodes: list[dict] = json.loads(open(root_dir + "/fixtures/test_floods_postcodes.json").read())
-        test_postcodes_as_objects: list[FloodWithPostcodes] = \
-            [FloodWithPostcodes(postcode.get("floodID"), postcode.get("postcodesInRange"))
-             for postcode in test_postcodes]
+        test_postcodes_as_objects: list[FloodWithPostcodes] = []
+        for test_flood in test_floods_as_objects:
+            for test_postcode in test_postcodes:
+                if test_postcode.get("floodID") == test_flood.floodAreaID:
+                    test_postcodes_as_objects.append(
+                        FloodWithPostcodes(test_flood, test_postcode.get("postcodesInRange")))
         notifications_to_send: list[FloodNotification] = (
-            mock_gather_subscribers_to_be_notified(test_postcodes_as_objects))
+            mock_gather_method(test_postcodes_as_objects))
         assert len(notifications_to_send) > 0
         for notification in notifications_to_send:
             assert isinstance(notification, FloodNotification)

@@ -64,15 +64,18 @@ async def get_all_flood_postcodes(floods: list[FloodWarning],
                                   outdated_cached_floods: list[FloodWithPostcodes]) -> list[FloodWithPostcodes]:
     results: list[FloodWithPostcodes] = outdated_cached_floods
     floods_with_postcodes: list[dict[str, Any]] = await get_all_postcodes_in_flood_range(floods)
-    for flood in floods_with_postcodes:
-        postcode_set: set[str] = set()
-        postcodes = flat_map(lambda f: f, flood["floodPostcodes"])
-        for postcode in postcodes:
-            postcode_id = postcode["features"][0]["properties"]["postcodes"]
-            postcode_set.add(postcode_id)
-        flood_with_postcodes: FloodWithPostcodes = FloodWithPostcodes(flood.get("id"), postcode_set)
-        cache_flood_postcodes(flood_with_postcodes.id, flood_with_postcodes.postcode_set)
-        results.append(flood_with_postcodes)
+    for postcodes_dict in floods_with_postcodes:
+        for flood in floods:
+            if postcodes_dict.get("id") == flood.floodAreaID:
+                postcode_set: set[str] = set()
+                postcodes = flat_map(lambda f: f, postcodes_dict["floodPostcodes"])
+                for postcode in postcodes:
+                    postcode_id = postcode["features"][0]["properties"]["postcodes"]
+                    postcode_set.add(postcode_id)
+                flood_with_postcodes: FloodWithPostcodes = FloodWithPostcodes(flood, postcode_set)
+                cache_flood_postcodes(flood_with_postcodes.flood.floodAreaID,
+                                      flood_with_postcodes.postcode_set)
+                results.append(flood_with_postcodes)
     return results
 
 

@@ -11,6 +11,6 @@ def gather_subscribers_to_be_notified(floods_with_postcodes: list[FloodWithPostc
     for flood_with_postcode in floods_with_postcodes:
         subscribers: list[Subscriber] = get_all_subscribers_by_postcodes(get_session(), flood_with_postcode.postcode_set)
         subscribers = [x for x in subscribers if x is not None]
-        notification: FloodNotification = FloodNotification(flood_with_postcode.id, subscribers)
+        notification: FloodNotification = FloodNotification(flood_with_postcode.flood, subscribers)
         notifications.append(notification)
     return notifications
