@@ -13,15 +13,18 @@ logger = logging.getLogger(__name__)
 
 
 def notify_subscribers(floods_with_postcodes: list[FloodWithPostcodes]) -> list[FloodNotification]:
+    total_tasks = 0
     notifications: list[FloodNotification] = []
     for flood_with_postcode in floods_with_postcodes:
         subscribers: list[Subscriber] = get_all_subscribers_by_postcodes(get_session(), flood_with_postcode.postcode_set)
         subscribers = [x for x in subscribers if x is not None]
         notification: FloodNotification = FloodNotification(flood_with_postcode.flood, subscribers)
+        total_tasks += len(subscribers)
         notifications.append(notification)
-    with Producer() as producer:
+    with Producer(total_tasks) as producer:
         try:
             producer.notify_subscribers_by_email(notifications)
+            producer.prepare_consumers()
         except AttributeError as e:
             logger.error(f"Failed to notify subscribers (Likely because the connection to rabbitmq failed): {e}")
             raise e

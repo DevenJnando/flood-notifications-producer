@@ -2,12 +2,13 @@ import os
 import unittest
 import json
 import pika
-from pika.exceptions import AMQPConnectionError
+from pika.exceptions import AMQPConnectionError, NackError
 
 from app.dbschema.schema import Subscriber
 from app.models.objects.flood_notification import FloodNotification
 from app.models.objects.floods_with_postcodes import FloodWithPostcodes
 from app.models.pydantic_models.flood_warning import FloodWarning
+from app.notifications.producer import Producer
 from app.services.notification_service import notify_subscribers
 
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
@@ -18,6 +19,34 @@ except AMQPConnectionError:
     connection = None
 
 class NotificationTests(unittest.TestCase):
+
+
+    def test_producer(self):
+        no_of_tasks: int = 1000
+        flood_key: str = "flood"
+        subscriber_email_key: str = "subscriber_email"
+        flood_area_id_key: str = "floodAreaID"
+        flood_description_key: str = "description"
+        flood_severity_key: str = "severity"
+        flood_severity_level_key: str = "severityLevel"
+        flood_message_key: str = "message"
+        test_notification: dict = {
+            flood_key: {
+                flood_area_id_key: "floodAreaID",
+                flood_description_key: "description",
+                flood_severity_key: "severity",
+                flood_severity_level_key: 1,
+                flood_message_key: "message"
+            },
+            subscriber_email_key: "subscriberEmail"
+        }
+        try:
+            with Producer(no_of_tasks) as producer:
+                for i in range(no_of_tasks):
+                    producer.publish(body=json.dumps(test_notification), routing_key='email')
+                producer.prepare_consumers()
+        except (AMQPConnectionError, AttributeError, NackError) as e:
+            self.fail(f"Encountered a producer exception: {e}")
 
 
     def test_gather_subscribers(self):
