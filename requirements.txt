@@ -1,6 +1,4 @@
 pyodbc
-fastapi
-uvicorn[standard]
 pydantic
 azure-identity
 python-dotenv
@@ -16,4 +14,5 @@ shapely
 aiohttp
 redis
 rq
+schedule
 pika

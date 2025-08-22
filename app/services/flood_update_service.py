@@ -4,12 +4,17 @@ import logging
 from http import HTTPStatus
 from json import JSONDecodeError
 from typing import Any
-from redis.exceptions import ConnectionError
+
+import requests
+from pydantic_core._pydantic_core import PydanticSerializationError
+from redis.exceptions import ConnectionError as RedisConnectionError
 
 from fastapi import HTTPException
 from requests import get
+from requests.adapters import ConnectionError
 
 from geojson import Polygon, MultiPolygon, loads
+from requests.models import Response
 
 from app.models.objects.flood_geometries import FloodGeometries
 from app.models.pydantic_models.flood_warning import FloodWarning
@@ -27,8 +32,25 @@ from app.models.pydantic_models.latest_flood_update import LatestFloodUpdate
 from app.utilities.utilities import flat_map
 
 SEGMENT_THRESHOLD = 0.1
+FLOOD_UPDATE_URL = "https://environment.data.gov.uk/flood-monitoring/id/floods"
 
 logger = logging.getLogger(__name__)
+
+import functools
+
+def catch_exceptions(cancel_on_failure=False):
+    def catch_exceptions_decorator(job_func):
+        @functools.wraps(job_func)
+        def wrapper(schedule=None, *args, **kwargs):
+            try:
+                return job_func(*args, **kwargs)
+            except:
+                import traceback
+                print(traceback.format_exc())
+                if cancel_on_failure:
+                    return schedule.CancelJob
+        return wrapper
+    return catch_exceptions_decorator
 
 
 async def get_geojson_from_floods(flood_update: LatestFloodUpdate) -> LatestFloodUpdate | None:
@@ -38,12 +60,12 @@ async def get_geojson_from_floods(flood_update: LatestFloodUpdate) -> LatestFloo
         flood_geojson = flood_geojson_request.json()
         try:
             flood.floodAreaGeoJson = loads(json.dumps(flood_geojson))
-        except JSONDecodeError:
-            raise HTTPException(status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
-                                detail="Could not deserialize flood update geojson object. "
-                                       "(If you see this error, something is wrong wit the environment agency API. "
-                                       "Documentation and further information can be found here:"
-                                       "https://environment.data.gov.uk/flood-monitoring/doc/reference")
+        except JSONDecodeError as e:
+            logger.error("Could not deserialize flood update geojson object. "
+                         "(If you see this error, something is wrong wit the environment agency API. "
+                         "Documentation and further information can be found here:"
+                         "https://environment.data.gov.uk/flood-monitoring/doc/reference")
+            raise e
     return flood_update
 
 
@@ -93,6 +115,21 @@ async def process_flood_updates(flood_update: LatestFloodUpdate):
         results = await get_all_flood_postcodes(uncached_floods, outdated_cached_floods)
     try:
         worker_queue.enqueue(notify_subscribers, results, job_timeout=180)
-    except ConnectionError as e:
-        logger.warning(f"Redis Connection Error: {e}")
+    except RedisConnectionError as e:
+        logger.error(f"Redis Connection Error: {e}")
     return results
+
+
+@catch_exceptions(cancel_on_failure=True)
+async def get_flood_updates():
+    try:
+        res: Response = requests.get(FLOOD_UPDATE_URL)
+        if res.status_code == 200:
+            try:
+                flood_update: LatestFloodUpdate = LatestFloodUpdate(**res.json())
+                return await process_flood_updates(flood_update)
+            except PydanticSerializationError as e:
+                logger.error(f"Pydantic Serialization Error: {e}")
+        logger.error(f"Failed to get flood updates from {FLOOD_UPDATE_URL}")
+    except ConnectionError as e:
+        logger.error(f"Could not retrieve flood updates from flood api: {e}")
