@@ -1,7 +1,6 @@
 import asyncio
 import json
 import logging
-from http import HTTPStatus
 from json import JSONDecodeError
 from typing import Any
 
@@ -9,7 +8,6 @@ import requests
 from pydantic_core._pydantic_core import PydanticSerializationError
 from redis.exceptions import ConnectionError as RedisConnectionError
 
-from fastapi import HTTPException
 from requests import get
 from requests.adapters import ConnectionError
 

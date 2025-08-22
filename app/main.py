@@ -31,3 +31,4 @@ if __name__ == "__main__":
             time.sleep(1)
         except KeyboardInterrupt:
             schedule.clear()
+            exit(0)
