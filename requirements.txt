@@ -6,7 +6,6 @@ azure-identity
 python-dotenv
 sqlalchemy
 requests
-pytest
 python-multipart
 email-validator
 azure-cosmos
