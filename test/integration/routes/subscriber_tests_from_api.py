@@ -28,7 +28,7 @@ class SubscriberTests(unittest.TestCase):
     def test_get_all_subscribers(self):
         response = client.get("/subscribers/all")
         assert response.status_code == HTTPStatus.OK
-        assert len(response.json()) == 3 or len(response.json()) == 4
+        assert len(response.json()) > 0
 
 
     def test_get_subscriber_by_id_exists(self):

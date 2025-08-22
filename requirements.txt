@@ -8,6 +8,8 @@ sqlalchemy
 requests
 python-multipart
 email-validator
+pytest
+httpx
 azure-cosmos
 geojson
 shapely
