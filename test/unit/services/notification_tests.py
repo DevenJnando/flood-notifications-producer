@@ -47,17 +47,17 @@ class NotificationTests(unittest.TestCase):
             subscriber9 = Subscriber(email="crenando_tk8ym@mailsac.com")
             subscriber10 = Subscriber(email="crenando_bmtj4@mailsac.com")
 
-            postcode1 = Postcode(postcode="LA8 9LF", subscriber=subscriber1)
-            postcode2 = Postcode(postcode="DL8 4RR", subscriber=subscriber2)
-            postcode3 = Postcode(postcode="LA9 6HG", subscriber=subscriber4)
-            postcode4 = Postcode(postcode="LA8 8JJ", subscriber=subscriber5)
-            postcode5 = Postcode(postcode="LA12 8NS", subscriber=subscriber6)
-            postcode6 = Postcode(postcode="LA22 9EA", subscriber=subscriber8)
-            postcode7 = Postcode(postcode="LA22 9DG", subscriber=subscriber9)
-            postcode8 = Postcode(postcode="LA22 0DY", subscriber=subscriber10)
-            postcode9 = Postcode(postcode="LA8 9LF", subscriber=subscriber7)
-            postcode10 = Postcode(postcode="DL8 4RR", subscriber=subscriber3)
-            postcode11 = Postcode(postcode="LA12 8NS", subscriber=subscriber7)
+            postcode1 = Postcode(postcode="LA89LF", subscriber=subscriber1)
+            postcode2 = Postcode(postcode="DL84RR", subscriber=subscriber2)
+            postcode3 = Postcode(postcode="LA96HG", subscriber=subscriber4)
+            postcode4 = Postcode(postcode="LA88JJ", subscriber=subscriber5)
+            postcode5 = Postcode(postcode="LA128NS", subscriber=subscriber6)
+            postcode6 = Postcode(postcode="LA229EA", subscriber=subscriber8)
+            postcode7 = Postcode(postcode="LA229DG", subscriber=subscriber9)
+            postcode8 = Postcode(postcode="LA220DY", subscriber=subscriber10)
+            postcode9 = Postcode(postcode="LA89LF", subscriber=subscriber7)
+            postcode10 = Postcode(postcode="DL84RR", subscriber=subscriber3)
+            postcode11 = Postcode(postcode="LA128NS", subscriber=subscriber7)
 
             subscriber1.postcodes = [postcode1]
             subscriber2.postcodes = [postcode2]
@@ -83,7 +83,7 @@ class NotificationTests(unittest.TestCase):
         Base.metadata.drop_all(mailing_list_engine)
 
 
-    @patch("app.services.notification_service.gather_subscribers_to_be_notified")
+    @patch("app.services.notification_service.notify_subscribers")
     def test_gather_subscribers_matches_mock_return_value(self, mock_gather_method):
         test_subscriber = Subscriber(email="testemail@testmail.com")
         test_postcode = Postcode(postcode="LA96HG", subscriber=test_subscriber)
@@ -102,7 +102,7 @@ class NotificationTests(unittest.TestCase):
         assert mock_gather_method(test_postcodes_as_objects) == [test_notification]
 
 
-    @patch("app.services.notification_service.gather_subscribers_to_be_notified")
+    @patch("app.services.notification_service.notify_subscribers")
     def test_gather_subscribers_no_matches_mock_return_value(self, mock_gather_method):
         mock_gather_method.return_value = []
         test_floods: list[dict] = json.loads(open(root_dir + "/fixtures/test_floods.json").read()).get("items")
@@ -117,7 +117,7 @@ class NotificationTests(unittest.TestCase):
         assert mock_gather_method(test_postcodes_as_objects) == []
 
 
-    @patch("app.services.notification_service.gather_subscribers_to_be_notified")
+    @patch("app.services.notification_service.notify_subscribers")
     def test_gather_subscribers_mock_method(self, mock_gather_method):
         mock_gather_method.side_effect = mock_gather_subscribers_to_be_notified
         test_floods: list[dict] = json.loads(open(root_dir + "/fixtures/test_floods.json").read()).get("items")

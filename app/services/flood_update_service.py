@@ -90,7 +90,7 @@ async def get_all_flood_postcodes(floods: list[FloodWarning],
                 postcode_set: set[str] = set()
                 postcodes = flat_map(lambda f: f, postcodes_dict["floodPostcodes"])
                 for postcode in postcodes:
-                    postcode_id = postcode["features"][0]["properties"]["postcodes"]
+                    postcode_id = postcode["features"][0]["properties"]["mapit_code"]
                     postcode_set.add(postcode_id)
                 flood_with_postcodes: FloodWithPostcodes = FloodWithPostcodes(flood, postcode_set)
                 cache_flood_postcodes(flood_with_postcodes.flood.floodAreaID,

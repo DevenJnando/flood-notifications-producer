@@ -1,13 +1,13 @@
 pyodbc
-pydantic
+pydantic~=2.11.7
 azure-identity
-python-dotenv
-sqlalchemy
+python-dotenv~=1.1.1
+sqlalchemy~=2.0.43
 requests
 python-multipart
-email-validator
 pytest
 httpx
+azure-common
 azure-cosmos
 geojson
 shapely
@@ -16,3 +16,5 @@ redis
 rq
 schedule
 pika
+email_validator~=2.2.0
+azure-core~=1.35.0
