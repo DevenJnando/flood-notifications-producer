@@ -1,5 +1,6 @@
 import json
 import sys
+from uuid import UUID
 
 import pika
 import logging
@@ -25,6 +26,7 @@ class Producer:
             self.channel.queue_declare(queue='email', durable=True, arguments={"x-queue-type": "quorum"})
             self.task_key = "no_of_tasks"
             self.flood_key = "flood"
+            self.subscriber_id_key = "subscriber_id"
             self.subscriber_email_key = "subscriber_email"
             self.serialized_no_of_tasks: str = json.dumps(
                 {
@@ -74,11 +76,13 @@ class Producer:
         for notification in flood_notifications:
             for subscriber in notification.subscribers:
                 serializable_flood: dict = notification.flood.model_dump()
-                serializable_subscriber: str = subscriber.email
+                serializable_subscriber_id: str = str(subscriber.id)
+                serializable_subscriber_email: str = subscriber.email
                 serialized_flood_notification: str = json.dumps(
                     {
                         self.flood_key: serializable_flood,
-                        self.subscriber_email_key: serializable_subscriber
+                        self.subscriber_id_key: serializable_subscriber_id,
+                        self.subscriber_email_key: serializable_subscriber_email
                     }
                 )
                 self.publish(body=serialized_flood_notification, routing_key='email')
