@@ -1,4 +1,6 @@
 import logging
+import time
+
 from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker
 
@@ -28,5 +30,6 @@ def get_all_subscribers_by_postcodes(session: sessionmaker, postcodes: set[str])
             logger.error(f"Failed to get subscribers for postcodes {postcodes}: Retrying. "
                          f"(Attempt {attempt_number} of {ATTEMPT_LIMIT}): {e}")
             attempt_number += 1
+            time.sleep(5)
     logger.error("Attempt limit reached.")
     return subscribers_with_postcodes
