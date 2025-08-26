@@ -13,6 +13,13 @@ logger = logging.getLogger(__name__)
 
 
 def notify_subscribers(floods_with_postcodes: list[FloodWithPostcodes]) -> list[FloodNotification]:
+    """
+    Notifies all subscribers whose postcodes intersect with any given flood.
+
+    @param floods_with_postcodes: a list of FloodWithPostcodes objects
+    @return: a list of FloodNotifications objects which contain the relevant flood details and all affected subscribers
+    @throws AttributeError: thrown if the producer context manager fails to send a notification
+    """
     total_tasks = 0
     notifications: list[FloodNotification] = []
     for flood_with_postcode in floods_with_postcodes:

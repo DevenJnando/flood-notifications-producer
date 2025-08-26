@@ -14,6 +14,11 @@ logging.basicConfig(level=logging.DEBUG, format=LOG_FORMAT)
 
 
 class Producer:
+    """
+    Producer object which establishes a connection to RabbitMQ and prepares any notifications
+    to be accepted by the consumer. This includes any notification email notifications to be sent,
+    as well as the total number of emails for the task manager queue.
+    """
 
     def __init__(self, no_of_tasks: int):
         self.logger = logging.getLogger(__name__)
@@ -39,6 +44,7 @@ class Producer:
             self.__exit__(*sys.exc_info())
             raise e
 
+
     def __enter__(self):
         return self
 
@@ -53,6 +59,13 @@ class Producer:
 
 
     def publish(self, body: str, routing_key: str, attempt: int = 0):
+        """
+        Publishes a message to RabbitMQ.
+
+        @param body: the body of the message to be sent
+        @param routing_key: the queue for the message to be placed onto
+        @param attempt: the current attempt number. If left blank, it defaults to 0.
+        """
         ATTEMPT_LIMIT = 5
         try:
             self.channel.basic_publish(exchange='', routing_key=routing_key, body=body,
@@ -69,10 +82,19 @@ class Producer:
 
 
     def prepare_consumers(self):
+        """
+        Sends the total number of emails to the task manager queue.
+        """
         self.publish(body=self.serialized_no_of_tasks, routing_key='tasks')
 
 
     def notify_subscribers_by_email(self, flood_notifications: list[FloodNotification]) -> None:
+        """
+        Creates a message with the given flood ID, the suscriber ID and the subscriber email address
+        for each subscriber in a list of FloodNotification objects.
+
+        @param flood_notifications: a list of FloodNotification objects
+        """
         for notification in flood_notifications:
             for subscriber in notification.subscribers:
                 serializable_flood: dict = notification.flood.model_dump()

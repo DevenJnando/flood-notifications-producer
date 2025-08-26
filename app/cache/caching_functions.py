@@ -63,6 +63,10 @@ def is_in_cache(key: str) -> bool:
 
 
 def expire_key(key: str) -> None:
+    """
+    Lets the redis database know that the key/value pair should expire after
+    one full day. The day has to be represented in seconds.
+    """
     try:
         redis.expire(key, day_in_seconds)
     except ConnectionError as e:
@@ -70,6 +74,10 @@ def expire_key(key: str) -> None:
 
 
 def persist_key(key: str) -> None:
+    """
+    Lets the redis database know that the key/value pair should persist.
+    If this key/value pair has been set to expire, this expiry time is overwritten.
+    """
     try:
         redis.persist(key)
     except ConnectionError as e:

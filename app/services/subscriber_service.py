@@ -11,6 +11,13 @@ logger = logging.getLogger(__name__)
 
 
 def get_all_subscribers_by_postcodes(session: sessionmaker, postcodes: set[str]) -> list[Subscriber | None]:
+    """
+    Retrieves all subscribers who wish to receive flood updates on a given postcode
+
+    @param session: the database session
+    @param postcodes: a set of postcodes
+    @return: a list of Subscriber objects
+    """
     subscribers_with_postcodes: list[Subscriber] = []
     ATTEMPT_LIMIT = 5
     attempt_number = 1
