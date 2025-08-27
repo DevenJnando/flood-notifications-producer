@@ -12,7 +12,13 @@ from app.cosmos.cosmos_queries import COSMOS_QUERY_CHARACTER_LIMIT, match_areas_
 RECURSION_LIMIT = 250
 
 
-def get_geometry_from_geojson(geojson: str):
+def get_geometry_from_geojson(geojson: str) -> list[Geometry]:
+    """
+    Returns a shapely Geometry object from a serialized geojson object.
+
+    @param geojson: a serialized geojson object represented as a string
+    @return: a shapely Geometry object
+    """
     try:
         geom: Geometry = from_geojson(geojson)
     except GEOSException as e:
@@ -22,6 +28,12 @@ def get_geometry_from_geojson(geojson: str):
 
 
 def get_geojson_from_geometry(geom: Geometry):
+    """
+    Returns a serialized geojson object from a shapely Geometry object.
+
+    @param geom: a shapely Geometry object
+    @return: a serialized geojson object represented as a string
+    """
     try:
         geojson: str = to_geojson(geom)
     except TypeError as e:
@@ -42,8 +54,6 @@ def recursive_geometry_subdivision(geom: Polygon, threshold, recursion_depth=0):
     width = x2 - x1
     height = y2 - y1
     if max(width, height) <= threshold or recursion_depth == RECURSION_LIMIT:
-        # either the polygon is smaller than the threshold, or the maximum
-        # number of recursions has been reached
         return [geom]
     if height >= width:
         # split left to right
@@ -54,6 +64,7 @@ def recursive_geometry_subdivision(geom: Polygon, threshold, recursion_depth=0):
         side_a = box(x1, y1, x1+width/2, y2)
         side_b = box(x1+width/2, y1, x2, y2)
     result = []
+
     # recursively split each intersection on either side until they are less than the threshold
     for split_geometry in (side_a, side_b,):
         intersections = geom.intersection(split_geometry)
@@ -64,6 +75,7 @@ def recursive_geometry_subdivision(geom: Polygon, threshold, recursion_depth=0):
                 result.extend(recursive_geometry_subdivision(part, threshold, recursion_depth + 1))
     if recursion_depth > 0:
         return result
+
     # convert multipart into single part
     final_result = []
     for part in result:
@@ -75,6 +87,13 @@ def recursive_geometry_subdivision(geom: Polygon, threshold, recursion_depth=0):
 
 
 def subdivide(geojson: str, cell_surface_threshold: float) -> list[list[Polygon]]:
+    """
+    Subdivides a geojson string into smaller geometries each no larger than the given cell surface area threshold.
+
+    @param geojson: a serialized geojson object represented as a string to be subdivided
+    @param cell_surface_threshold: cell surface area threshold for subdivision
+    @return: a list of subdivided geometries represented as Polygon objects
+    """
     geom_parts: list[Geometry] = get_geometry_from_geojson(geojson)
     list_of_subdivided_polygons: list[list[Polygon]] = []
     for part in geom_parts:
@@ -83,7 +102,16 @@ def subdivide(geojson: str, cell_surface_threshold: float) -> list[list[Polygon]
     return list_of_subdivided_polygons
 
 
-def subdivide_from_feature_collection(feature_collection: FeatureCollection, cell_surface_threshold: float) -> list[GeojsonPolygon | GeojsonMultiPolygon]:
+def subdivide_from_feature_collection(feature_collection: FeatureCollection, cell_surface_threshold: float) \
+        -> list[GeojsonPolygon | GeojsonMultiPolygon]:
+    """
+    Subdivides a geojson string into smaller geometries each no larger than the
+    given cell surface area threshold. Each geojson string is obtained from a FeatureCollection object.
+
+    @param feature_collection: a FeatureCollection object containing all geojson geometries to be subdivided
+    @param cell_surface_threshold: cell surface area threshold for subdivision
+    @return: a list of subdivided geometries represented as Polygon, or MultiPolygon geojson objects
+    """
     geometries: list[GeojsonPolygon | GeojsonMultiPolygon] = []
     flood_area_features: list[Feature] = feature_collection.get("features")
     for feature in flood_area_features:

@@ -1,14 +1,13 @@
 import unittest
 import os
 import json
+from json import JSONDecodeError
 from unittest.async_case import IsolatedAsyncioTestCase
 
 from pydantic_core._pydantic_core import ValidationError
 
 from app.services.flood_update_service import get_geojson_from_floods
 from app.models.pydantic_models.latest_flood_update import LatestFloodUpdate
-
-from fastapi import HTTPException
 
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
 
@@ -50,7 +49,7 @@ class FloodUpdateTests(IsolatedAsyncioTestCase):
     async def test_flood_update_no_polygon(self):
         test_floods_obj = json.loads(open(root_dir + "/fixtures/bad_test_floods_no_polygon.json").read())
         flood_update = LatestFloodUpdate(**test_floods_obj)
-        with self.assertRaises(HTTPException):
+        with self.assertRaises(JSONDecodeError):
             await get_geojson_from_floods(flood_update)
 
 

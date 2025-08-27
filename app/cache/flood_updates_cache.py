@@ -25,6 +25,14 @@ def flood_postcodes_are_cached(flood_area_id: str) -> bool:
 
 
 def severity_has_changed(flood_area_id: str, severity_level: int, severity_message: str) -> bool:
+    """
+    Checks if the severity of the given flood warning has changed.
+    If it has, the new severity level and message is cached.
+    If the severity was previously "No longer in force" and it now another level
+    of severity, it is set to be persisted.
+    If the severity was previously another level and is now "No longer in force",
+    it is set to expire after one full day.
+    """
     flood_severity_dict: dict = get_flood_severity_dict(flood_area_id)
     if flood_severity_dict is not None:
         try:
@@ -92,6 +100,20 @@ def set_flood_postcodes_to_persist(flood_area_id: str) -> None:
 
 def get_uncached_and_cached_floods_tuple(floods: list[FloodWarning]) \
         -> tuple[list[FloodWarning], list[FloodWithPostcodes]]:
+    """
+    This method places every uncached flood into one list, and all cached floods which are
+    now outdated (i.e. the severity from the latest real-time flood update no longer matches
+    the severity of the flood stored in the redis database) into another list.
+
+    The reason outdated cached floods are also returned is that the user will need to be
+    notified that the status of the previously cached flood(s) has now changed.
+
+    These lists are then returned as a tuple, with the uncached floods being at
+    index 0 and the cached floods being at index 1.
+
+    The uncached floods have no postcodes associated with them since they are not currently known.
+    The outdated cached floods do however, since they have been previously established and cached.
+    """
     outdated_cached_floods: list[FloodWithPostcodes] = list()
     uncached_floods: list[FloodWarning] = [flood for flood in floods
                                    if not flood_severity_is_cached(flood.floodAreaID)]
