@@ -58,7 +58,7 @@ jobs:
               --server "${{ secrets.SERVER }}" \
               --start-ip-address $agentIP \
               --end-ip-address $agentIP
-            sleep 300
+            sleep 30
 
     - name: Start Redis
       uses: supercharge/redis-github-action@1.7.0
