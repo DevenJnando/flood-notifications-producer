@@ -46,6 +46,20 @@ jobs:
         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+    - name: Whitelist GitHub Runner IP
+      uses: azure/CLI@v1
+      with:
+        inlineScript: |
+            set -eu
+            agentIP=$(curl -s https://api.ipify.org/)
+            az sql server firewall-rule create \
+              --name "dev-ci-rule" \
+              --resource-group "${{ secrets.RESOURCE_GROUP }}" \
+              --server "${{ secrets.SERVER }}" \
+              --start-ip-address $agentIP \
+              --end-ip-address $agentIP
+            sleep 300
+
     - name: Start Redis
       uses: supercharge/redis-github-action@1.7.0
       with:
@@ -63,3 +77,15 @@ jobs:
     - name: Test with pytest
       run: |
         pytest
+
+    - name: Remove GitHub Runner IP from Whitelist
+      if: always()
+      uses: azure/CLI@v1
+      with:
+        inlineScript: |
+            set -eu
+            agentIP=$(curl -s https://api.ipify.org/)
+            az sql server firewall-rule delete  \
+              --name "dev-ci-rule" \
+              --resource-group "${{ secrets.RESOURCE_GROUP }}" \
+              --server "${{ secrets.SERVER }}"
