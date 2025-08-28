@@ -120,8 +120,9 @@ async def get_all_flood_postcodes(floods: list[FloodWarning],
                     postcode_id = postcode["features"][0]["properties"]["mapit_code"]
                     postcode_set.add(postcode_id)
                 flood_with_postcodes: FloodWithPostcodes = FloodWithPostcodes(flood, postcode_set)
-                cache_flood_postcodes(flood_with_postcodes.flood.floodAreaID,
-                                      flood_with_postcodes.postcode_set)
+                if len(flood_with_postcodes.postcode_set) > 0:
+                    cache_flood_postcodes(flood_with_postcodes.flood.floodAreaID,
+                                          flood_with_postcodes.postcode_set)
                 results.append(flood_with_postcodes)
     return results
 
