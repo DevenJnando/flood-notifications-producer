@@ -13,14 +13,16 @@ from app.cache.flood_updates_cache import (get_flood_postcodes_set,
                                            flood_postcodes_are_cached,
                                            cache_flood_severity,
                                            cache_flood_postcodes)
+from app.models.objects.floods_with_postcodes import FloodWithPostcodes
+from app.models.pydantic_models.flood_warning import FloodWarning
 
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
 
 dict_key: str = "011FWFNC50A"
 set_key: str = "011FWFNC50A"
 dict_value: dict = {
-    "severity": "Flood Alert",
-    "severityLevel": "3"
+    "severity": "Warning no longer in force",
+    "severityLevel": "4"
 }
 set_value: set = {"DE2 1AE", "G76 9DQ"}
 dict_data: dict = {dict_key + redis_severity_suffix: dict_value}
@@ -55,25 +57,25 @@ class FloodUpdatesCacheTests(unittest.TestCase):
 
     def test_flood_severity_has_changed(self):
         new_severity: dict = {
-            "severity": "Warning no longer in force",
-            "severityLevel": 4
+            "severity": "Flood Alert",
+            "severityLevel": 3
         }
         assert severity_has_changed(dict_key,
                                     new_severity.get("severityLevel"),
                                     new_severity.get("severity")) == True
 
 
-    def test_flood_severity_has_not_changed(self):
+    def test_flood_severity_got_same_value(self):
         new_severity: dict = {
-            "severity": "Flood Alert",
-            "severityLevel": 3
+            "severity": "Warning no longer in force",
+            "severityLevel": 4
         }
         assert severity_has_changed(dict_key,
                                     new_severity.get("severityLevel"),
                                     new_severity.get("severity")) == False
 
 
-    def test_get_flood_severity_dict(self):
+    def test_flood_severity_dict(self):
         expected_value: dict = dict_value
         assert get_flood_severity_dict(dict_key) == expected_value
 
@@ -113,19 +115,26 @@ class FloodUpdatesCacheTests(unittest.TestCase):
     def test_get_valid_cached_floods_with_postcodes(self):
         test_floods: dict = json.loads(open(root_dir + "/fixtures/test_floods.json").read())
         mock_uncached_floods: dict = json.loads(open(root_dir + "/fixtures/mock_uncached_floods.json").read())
-        list_of_floods = test_floods.get("items")
-        list_of_uncached_floods: list = mock_uncached_floods.get("items")
-        expected_result: tuple[list[dict], list[dict]] = \
-            (
-                list_of_uncached_floods,
-                [
-                    {
-                        "floodId": set_key,
-                        "postcodesInRange": set_value
-                    }
-                ]
-            )
-        assert get_uncached_and_cached_floods_tuple(list_of_floods) == expected_result
+
+        mock_cached_flood: dict[str, FloodWarning] = dict()
+        list_of_floods: list[FloodWarning] = []
+
+        for flood in test_floods.get("items"):
+            if flood.get("floodAreaID") == set_key:
+                mock_cached_flood[set_key] = flood
+            list_of_floods.append(FloodWarning(**flood))
+        list_of_uncached_floods: list[FloodWarning] = []
+        for flood in mock_uncached_floods.get("items"):
+            list_of_uncached_floods.append(FloodWarning(**flood))
+
+        mock_cached_flood_object: FloodWarning = mock_cached_flood.get(set_key)
+        mock_flood_with_postcodes: FloodWithPostcodes = FloodWithPostcodes(mock_cached_flood_object, set_value)
+        actual_results: tuple[list[FloodWarning], list[FloodWithPostcodes]] = get_uncached_and_cached_floods_tuple(list_of_floods)
+        actual_uncached_floods: list[FloodWarning] = actual_results[0]
+        actual_flood_with_postcodes: FloodWithPostcodes = actual_results[1][0]
+        assert len(list_of_uncached_floods) == len(actual_uncached_floods)
+        assert mock_flood_with_postcodes.flood.get("floodAreaID") == actual_flood_with_postcodes.flood.floodAreaID
+        assert mock_flood_with_postcodes.postcode_set == actual_flood_with_postcodes.postcode_set
 
 
 if __name__ == "__main__":

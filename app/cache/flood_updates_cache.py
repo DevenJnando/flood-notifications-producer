@@ -124,8 +124,8 @@ def get_uncached_and_cached_floods_tuple(floods: list[FloodWarning]) \
                                                          flood.severityLevel,
                                                          flood.severity)]
     for flood in cached_floods:
-        cached_postcodes: set = get_flood_postcodes_set(flood.get("floodAreaID"))
-        flood_with_postcodes: FloodWithPostcodes = FloodWithPostcodes(flood.get("floodAreaID"), cached_postcodes)
+        cached_postcodes: set = get_flood_postcodes_set(flood.floodAreaID)
+        flood_with_postcodes: FloodWithPostcodes = FloodWithPostcodes(flood, cached_postcodes)
         outdated_cached_floods.append(flood_with_postcodes)
     results: tuple[list[FloodWarning], list[FloodWithPostcodes]] = (uncached_floods, outdated_cached_floods)
     return results
