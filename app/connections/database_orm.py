@@ -19,8 +19,7 @@ def __get_az_mailing_list_engine() -> Engine | None:
     The engine also allows the user to interact with the database.
     @return SQLAlchemy Engine object.
     """
-    return create_engine("mssql+pyodbc:///?odbc_connect={}".format(mailing_list_connection_string),
-                           pool_pre_ping=True)
+    return create_engine("mssql+pyodbc:///?odbc_connect={}".format(mailing_list_connection_string), pool_pre_ping=True)
 
 
 def __get_sessionmaker(engine: Engine) -> sessionmaker:

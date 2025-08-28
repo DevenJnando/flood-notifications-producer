@@ -3,6 +3,7 @@ import time
 
 from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm.scoping import scoped_session
 
 from app.dbschema.schema import Subscriber, Postcode
 
@@ -10,7 +11,7 @@ from app.dbschema.schema import Subscriber, Postcode
 logger = logging.getLogger(__name__)
 
 
-def get_all_subscribers_by_postcodes(session: sessionmaker, postcodes: set[str]) -> list[Subscriber | None]:
+def get_all_subscribers_by_postcodes(session_maker: sessionmaker, postcodes: set[str]) -> list[Subscriber | None]:
     """
     Retrieves all subscribers who wish to receive flood updates on a given postcode
 
@@ -20,10 +21,11 @@ def get_all_subscribers_by_postcodes(session: sessionmaker, postcodes: set[str])
     """
     subscribers_with_postcodes: list[Subscriber] = []
     ATTEMPT_LIMIT = 5
-    attempt_number = 1
+    attempt_number = 0
     while attempt_number < ATTEMPT_LIMIT:
         try:
-            with session() as session:
+            Session = scoped_session(session_maker)
+            with Session() as session:
                 statement = (select(Subscriber, Postcode)
                              .join(Subscriber.postcodes)
                              .order_by(Subscriber.id, Postcode.id)
