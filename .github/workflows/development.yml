@@ -33,6 +33,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+
+    - name: Install Microsoft ODBC
+      run: sudo ACCEPT_EULA=Y apt-get install msodbcsql18 -y
     
     - name: Set up Python 3.10
       uses: actions/setup-python@v3
