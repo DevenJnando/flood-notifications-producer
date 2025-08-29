@@ -14,6 +14,12 @@ try:
     redis_database_port = getenv("REDIS_DATABASE_PORT")
     redis_postcodes_suffix = getenv("REDIS_POSTCODES_SUFFIX")
     redis_severity_suffix = getenv("REDIS_SEVERITY_SUFFIX")
+    rabbitmq_host = getenv("RABBITMQ_HOST")
+    rabbitmq_port = getenv("RABBITMQ_PORT")
+    rabbitmq_user = getenv("RABBITMQ_USER")
+    rabbitmq_password = getenv("RABBITMQ_PASSWORD")
+    LOG_FILE_LOCATION = getenv("LOG_FILE_LOCATION")
+    BUILD = getenv("BUILD")
 except KeyError:
     cosmos_endpoint = "DefaultAzureCredential"
     shard_map_database = "SHARD_MAP_DATABASE"
@@ -26,3 +32,9 @@ except KeyError:
     redis_database_port = "REDIS_DATABASE_PORT"
     redis_postcodes_suffix = "REDIS_POSTCODES_SUFFIX"
     redis_severity_suffix = "REDIS_SEVERITY_SUFFIX"
+    rabbitmq_host = "RABBITMQ_HOST"
+    rabbitmq_port = "RABBITMQ_PORT"
+    rabbitmq_user = "RABBITMQ_USER"
+    rabbitmq_password = "RABBITMQ_PASSWORD"
+    LOG_FILE_LOCATION = "LOG_FILE_LOCATION"
+    BUILD = "BUILD"

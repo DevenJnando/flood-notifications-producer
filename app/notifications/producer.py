@@ -1,16 +1,15 @@
 import json
 import sys
-from uuid import UUID
 
 import pika
-import logging
+from pika.adapters.blocking_connection import BlockingConnection, BlockingChannel
 
+from pika.credentials import PlainCredentials
 from pika.exceptions import AMQPConnectionError, NackError
-from app.models.objects.flood_notification import FloodNotification
 
-LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
-              '-35s %(lineno) -5d: %(message)s')
-logging.basicConfig(level=logging.DEBUG, format=LOG_FORMAT)
+from app.models.objects.flood_notification import FloodNotification
+from app.logging.log import *
+from app.env_vars import rabbitmq_host, rabbitmq_port, rabbitmq_user, rabbitmq_password
 
 
 class Producer:
@@ -21,11 +20,12 @@ class Producer:
     """
 
     def __init__(self, no_of_tasks: int):
-        self.logger = logging.getLogger(__name__)
-        self.dead_letter_log = logging.getLogger('dead_letter_log')
         try:
-            self.connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
-            self.channel = self.connection.channel()
+            credentials: PlainCredentials = pika.PlainCredentials(username=rabbitmq_user, password=rabbitmq_password)
+            self.connection: BlockingConnection = pika.BlockingConnection(pika.ConnectionParameters(host=rabbitmq_host,
+                                                                                port=rabbitmq_port,
+                                                                                credentials=credentials))
+            self.channel: BlockingChannel = self.connection.channel()
             self.channel.confirm_delivery()
             self.channel.queue_declare(queue='tasks', durable=True, arguments={"x-queue-type": "quorum"})
             self.channel.queue_declare(queue='email', durable=True, arguments={"x-queue-type": "quorum"})
@@ -39,7 +39,7 @@ class Producer:
                 }
             )
         except AMQPConnectionError as e:
-            self.logger.error("Could not connect to rabbitmq. Ensure rabbitmq is running.\n"
+            get_logger().error("Could not connect to rabbitmq. Ensure rabbitmq is running.\n"
                               f"AMQPConnectionError: {e}")
             self.__exit__(*sys.exc_info())
             raise e
@@ -53,7 +53,7 @@ class Producer:
         try:
             self.connection.close()
         except AttributeError as e:
-            self.logger.warning("Did not close connection to rabbitmq because "
+            get_logger().warning("Did not close connection to rabbitmq because "
                                 "no connection field had been initialised (Check that rabbitmq is running).")
             raise e
 
@@ -74,10 +74,10 @@ class Producer:
             if attempt < ATTEMPT_LIMIT:
                 attempt += 1
                 self.publish(body, routing_key, attempt)
-                self.logger.warning(f"Failed to publish notification. Retrying (attempt {attempt} of {ATTEMPT_LIMIT})")
+                get_logger().warning(f"Failed to publish notification. Retrying (attempt {attempt} of {ATTEMPT_LIMIT})")
             else:
-                self.logger.error(f"Maximum number of re-attempts exceeded.")
-                self.dead_letter_log.error(f"Maximum number of re-attempts exceeded for \n"
+                get_logger().error(f"Maximum number of re-attempts exceeded.")
+                get_logger().error(f"Maximum number of re-attempts exceeded for \n"
                                            f"{body}")
 
 

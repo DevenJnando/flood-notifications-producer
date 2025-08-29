@@ -1,11 +1,7 @@
 import time
-import logging
 import schedule
 
 from app.services.flood_update_service import get_flood_updates
-
-
-logger = logging.getLogger(__name__)
 
 
 if __name__ == "__main__":

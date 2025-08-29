@@ -1,6 +1,5 @@
 import asyncio
 import json
-import logging
 from json import JSONDecodeError
 from typing import Any
 
@@ -26,13 +25,14 @@ from app.cache.flood_updates_cache import (get_uncached_and_cached_floods_tuple,
 
 from app.cache.caching_functions import worker_queue
 
+from app.logging.log import get_logger
 from app.models.pydantic_models.latest_flood_update import LatestFloodUpdate
 from app.utilities.utilities import flat_map
+
 
 SEGMENT_THRESHOLD = 0.1
 FLOOD_UPDATE_URL = "https://environment.data.gov.uk/flood-monitoring/id/floods"
 
-logger = logging.getLogger(__name__)
 
 import functools
 
@@ -70,7 +70,7 @@ async def get_geojson_from_floods(flood_update: LatestFloodUpdate) -> LatestFloo
         try:
             flood.floodAreaGeoJson = loads(json.dumps(flood_geojson))
         except JSONDecodeError as e:
-            logger.error("Could not deserialize flood update geojson object. "
+            get_logger().error("Could not deserialize flood update geojson object. "
                          "(If you see this error, something is wrong wit the environment agency API. "
                          "Documentation and further information can be found here:"
                          "https://environment.data.gov.uk/flood-monitoring/doc/reference")
@@ -151,7 +151,7 @@ async def process_flood_updates(flood_update: LatestFloodUpdate) -> list[FloodWi
     try:
         worker_queue.enqueue(notify_subscribers, results, job_timeout=180)
     except RedisConnectionError as e:
-        logger.error(f"Redis Connection Error: {e}")
+        get_logger().error(f"Redis Connection Error: {e}")
     return results
 
 
@@ -171,7 +171,7 @@ async def get_flood_updates():
                 flood_update: LatestFloodUpdate = LatestFloodUpdate(**res.json())
                 return await process_flood_updates(flood_update)
             except PydanticSerializationError as e:
-                logger.error(f"Pydantic Serialization Error: {e}")
-        logger.error(f"Failed to get flood updates from {FLOOD_UPDATE_URL}")
+                get_logger().error(f"Pydantic Serialization Error: {e}")
+        get_logger().error(f"Failed to get flood updates from {FLOOD_UPDATE_URL}")
     except ConnectionError as e:
-        logger.error(f"Could not retrieve flood updates from flood api: {e}")
+        get_logger().error(f"Could not retrieve flood updates from flood api: {e}")
