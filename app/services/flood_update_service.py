@@ -162,7 +162,7 @@ async def get_flood_updates():
     gets all postcodes associated with each flood and notifies any subscribers who have postcodes
     which intersect with the flood(s).
 
-    This method should only by called by a scheduler object.
+    This method should only be called by a scheduler object.
     """
     try:
         res: Response = requests.get(FLOOD_UPDATE_URL)

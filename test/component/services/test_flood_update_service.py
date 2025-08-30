@@ -81,6 +81,7 @@ class FloodToPostcodeServiceTests(IsolatedAsyncioTestCase):
         floods_as_objects: list[FloodWarning] = [FloodWarning(**flood_warning) for flood_warning in floods]
         floods_with_postcodes: list[dict[str, str | list[Polygon | MultiPolygon]]] \
             = await get_all_postcodes_in_flood_range(floods_as_objects)
+        assert len(floods_with_postcodes) > 0
         for flood in floods:
             flood_geojson = flood["floodAreaGeoJson"]
             assert isinstance(flood_geojson, dict)

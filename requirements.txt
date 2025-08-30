@@ -14,7 +14,7 @@ shapely
 aiohttp
 redis
 rq
-schedule
+apscheduler
 pika
 email_validator~=2.2.0
 azure-core~=1.35.0
