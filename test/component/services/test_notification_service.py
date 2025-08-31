@@ -2,9 +2,12 @@ import os
 import unittest
 import json
 import pika
+from pika.adapters.blocking_connection import BlockingConnection
+from pika.credentials import PlainCredentials
 from pika.exceptions import AMQPConnectionError, NackError
 
 from app.dbschema.schema import Subscriber
+from app.env_vars import rabbitmq_user, rabbitmq_password, rabbitmq_host, rabbitmq_port
 from app.models.objects.flood_notification import FloodNotification
 from app.models.objects.floods_with_postcodes import FloodWithPostcodes
 from app.models.pydantic_models.flood_warning import FloodWarning
@@ -14,9 +17,12 @@ from app.services.notification_service import notify_subscribers
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
 
 try:
-    connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+    credentials: PlainCredentials = pika.PlainCredentials(username=rabbitmq_user, password=rabbitmq_password)
+    connection: BlockingConnection = pika.BlockingConnection(pika.ConnectionParameters(host=rabbitmq_host,
+                                                                                       port=rabbitmq_port,
+                                                                                       credentials=credentials))
 except AMQPConnectionError:
-    connection = None
+    connection: None = None
 
 class NotificationTests(unittest.TestCase):
 
@@ -24,6 +30,7 @@ class NotificationTests(unittest.TestCase):
     def test_producer(self):
         no_of_tasks: int = 1000
         flood_key: str = "flood"
+        subscriber_id_key: str = "subscriber_id"
         subscriber_email_key: str = "subscriber_email"
         flood_area_id_key: str = "floodAreaID"
         flood_description_key: str = "description"
@@ -38,6 +45,7 @@ class NotificationTests(unittest.TestCase):
                 flood_severity_level_key: 1,
                 flood_message_key: "message"
             },
+            subscriber_id_key: "subscriberID",
             subscriber_email_key: "subscriberEmail"
         }
         try:

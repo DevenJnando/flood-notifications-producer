@@ -1,5 +1,6 @@
 import asyncio
 import json
+import time
 from json import JSONDecodeError
 from typing import Any
 
@@ -85,7 +86,7 @@ async def get_all_postcodes_in_flood_range(floods: list[FloodWarning]) -> list[d
     @param floods: a list of FloodWarning objects
     @return: a list of dicts with the flood area ID being the key, and the list of postcodes the value.
     """
-    geometries_with_flood_area_ids: list[FloodGeometries] = []
+    geometries_with_flood_area_ids: list[FloodGeometries] = list()
     for flood in floods:
         geometries: list[Polygon | MultiPolygon] = (
             subdivide_from_feature_collection(flood.floodAreaGeoJson, SEGMENT_THRESHOLD))
@@ -138,7 +139,7 @@ async def process_flood_updates(flood_update: LatestFloodUpdate) -> list[FloodWi
     @param flood_update: the LatestFloodUpdate object
     @return: a list of FloodWithPostcodes objects
     """
-    results: list[FloodWithPostcodes] = []
+    results: list[FloodWithPostcodes] = list()
     flood_update = await get_geojson_from_floods(flood_update)
     if flood_update is not None:
         floods: list[FloodWarning] = flood_update.items
@@ -164,14 +165,23 @@ async def get_flood_updates():
 
     This method should only be called by a scheduler object.
     """
-    try:
-        res: Response = requests.get(FLOOD_UPDATE_URL)
-        if res.status_code == 200:
-            try:
-                flood_update: LatestFloodUpdate = LatestFloodUpdate(**res.json())
-                return await process_flood_updates(flood_update)
-            except PydanticSerializationError as e:
-                get_logger().error(f"Pydantic Serialization Error: {e}")
-        get_logger().error(f"Failed to get flood updates from {FLOOD_UPDATE_URL}")
-    except ConnectionError as e:
-        get_logger().error(f"Could not retrieve flood updates from flood api: {e}")
+    ATTEMPT_LIMIT = 5
+    attempt_number = 0
+    while attempt_number < ATTEMPT_LIMIT:
+        try:
+            res: Response = requests.get(FLOOD_UPDATE_URL)
+            if res.status_code == 200:
+                try:
+                    flood_update: LatestFloodUpdate = LatestFloodUpdate(**res.json())
+                    return await process_flood_updates(flood_update)
+                except PydanticSerializationError as e:
+                    get_logger().fatal(f"Pydantic Serialization Error: {e}")
+                    get_logger().fatal(f"Failed to get flood updates from {FLOOD_UPDATE_URL}")
+                    return list()
+        except ConnectionError as e:
+            get_logger().error(f"Could not retrieve flood updates from flood api: {e}")
+            get_logger().error(f"Retrying...(attempt {attempt_number} of {ATTEMPT_LIMIT})")
+            attempt_number += 1
+            time.sleep(5)
+    get_logger().fatal(f"Attempt limit reached...")
+    return list()

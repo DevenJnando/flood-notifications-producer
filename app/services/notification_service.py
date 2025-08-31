@@ -17,13 +17,14 @@ def notify_subscribers(floods_with_postcodes: list[FloodWithPostcodes]) -> list[
     @throws AttributeError: thrown if the producer context manager fails to send a notification
     """
     total_tasks = 0
-    notifications: list[FloodNotification] = []
+    notifications: list[FloodNotification] = list()
     for flood_with_postcode in floods_with_postcodes:
         subscribers: list[Subscriber] = get_all_subscribers_by_postcodes(get_session(), flood_with_postcode.postcode_set)
         subscribers = [x for x in subscribers if x is not None]
-        notification: FloodNotification = FloodNotification(flood_with_postcode.flood, subscribers)
-        total_tasks += len(subscribers)
-        notifications.append(notification)
+        if len(subscribers) > 0:
+            notification: FloodNotification = FloodNotification(flood_with_postcode.flood, subscribers)
+            total_tasks += len(subscribers)
+            notifications.append(notification)
     with Producer(total_tasks) as producer:
         try:
             producer.notify_subscribers_by_email(notifications)
