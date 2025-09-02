@@ -39,7 +39,7 @@ class Producer:
                 }
             )
         except AMQPConnectionError as e:
-            get_logger().error("Could not connect to rabbitmq. Ensure rabbitmq is running.\n"
+            get_logger(__name__).error("Could not connect to rabbitmq. Ensure rabbitmq is running.\n"
                               f"AMQPConnectionError: {e}")
             self.__exit__(*sys.exc_info())
             raise e
@@ -53,7 +53,7 @@ class Producer:
         try:
             self.connection.close()
         except AttributeError as e:
-            get_logger().warning("Did not close connection to rabbitmq because "
+            get_logger(__name__).warning("Did not close connection to rabbitmq because "
                                 "no connection field had been initialised (Check that rabbitmq is running).")
             raise e
 
@@ -70,14 +70,15 @@ class Producer:
         try:
             self.channel.basic_publish(exchange='', routing_key=routing_key, body=body,
                                        mandatory=True)
+            get_logger(__name__).info(f"Successfully sent message with body ({body}) to {routing_key}.")
         except NackError:
             if attempt < ATTEMPT_LIMIT:
                 attempt += 1
                 self.publish(body, routing_key, attempt)
-                get_logger().warning(f"Failed to publish notification. Retrying (attempt {attempt} of {ATTEMPT_LIMIT})")
+                get_logger(__name__).warning(f"Failed to publish notification. Retrying (attempt {attempt} of {ATTEMPT_LIMIT})")
             else:
-                get_logger().error(f"Maximum number of re-attempts exceeded.")
-                get_logger().error(f"Maximum number of re-attempts exceeded for \n"
+                get_logger(__name__).error(f"Maximum number of re-attempts exceeded.")
+                get_logger(__name__).error(f"Maximum number of re-attempts exceeded for \n"
                                            f"{body}")
 
 
@@ -86,6 +87,7 @@ class Producer:
         Sends the total number of emails to the task manager queue.
         """
         self.publish(body=self.serialized_no_of_tasks, routing_key='tasks')
+        get_logger(__name__).info(f"Successfully sent {self.serialized_no_of_tasks} emails to task manager.")
 
 
     def notify_subscribers_by_email(self, flood_notifications: list[FloodNotification]) -> None:
@@ -108,3 +110,5 @@ class Producer:
                     }
                 )
                 self.publish(body=serialized_flood_notification, routing_key='email')
+                get_logger(__name__).info(f"Successfully published notification for flood "
+                                          f"{notification.flood.floodAreaID} to email queue.")

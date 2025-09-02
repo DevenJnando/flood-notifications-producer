@@ -68,10 +68,12 @@ async def get_geojson_from_floods(flood_update: LatestFloodUpdate) -> LatestFloo
         flood_geojson_request = get(flood.floodArea.polygon)
         flood_geojson_request.raise_for_status()
         flood_geojson = flood_geojson_request.json()
+        get_logger(__name__).info(f"Received geojson for flood {flood.floodAreaID}")
         try:
             flood.floodAreaGeoJson = loads(json.dumps(flood_geojson))
+            get_logger(__name__).info(f"Assigned geojson for flood {flood.floodAreaID}")
         except JSONDecodeError as e:
-            get_logger().error("Could not deserialize flood update geojson object. "
+            get_logger(__name__).error("Could not deserialize flood update geojson object. "
                          "(If you see this error, something is wrong wit the environment agency API. "
                          "Documentation and further information can be found here:"
                          "https://environment.data.gov.uk/flood-monitoring/doc/reference")
@@ -92,6 +94,7 @@ async def get_all_postcodes_in_flood_range(floods: list[FloodWarning]) -> list[d
             subdivide_from_feature_collection(flood.floodAreaGeoJson, SEGMENT_THRESHOLD))
         flood_geometries_object: FloodGeometries = FloodGeometries(flood.floodAreaID, geometries)
         geometries_with_flood_area_ids.append(flood_geometries_object)
+        get_logger(__name__).info(f"Subdivided and added geometries to flood {flood.floodAreaID}.")
     flood_postcodes = [collect_postcodes_in_flood_range(geo_with_id.id, geo_with_id.geometries)
                        for geo_with_id in geometries_with_flood_area_ids]
     flood_postcodes_results = await asyncio.gather(*flood_postcodes)
@@ -111,6 +114,7 @@ async def get_all_flood_postcodes(floods: list[FloodWarning],
     @return: a list of FloodWithPostcodes objects.
     """
     results: list[FloodWithPostcodes] = outdated_cached_floods
+    get_logger(__name__).info("Fetching postcodes from flood area.")
     floods_with_postcodes: list[dict[str, Any]] = await get_all_postcodes_in_flood_range(floods)
     for postcodes_dict in floods_with_postcodes:
         for flood in floods:
@@ -142,17 +146,26 @@ async def process_flood_updates(flood_update: LatestFloodUpdate) -> list[FloodWi
     results: list[FloodWithPostcodes] = list()
     flood_update = await get_geojson_from_floods(flood_update)
     if flood_update is not None:
+        get_logger(__name__).info("Retrieved geojson objects for current flood update.")
         floods: list[FloodWarning] = flood_update.items
         floods_tuple: tuple[list[FloodWarning], list[FloodWithPostcodes]] = get_uncached_and_cached_floods_tuple(floods)
         uncached_floods: list[FloodWarning] = floods_tuple[0]
         outdated_cached_floods: list[FloodWithPostcodes] = floods_tuple[1]
+        get_logger(__name__).info("Sorted individual flood warnings into cached and uncached lists.")
         for flood in uncached_floods:
             cache_flood_severity(flood.floodAreaID, flood.severityLevel, flood.severity)
+            get_logger(__name__).info(f"Cached previously uncached flood {flood.floodAreaID} with severity {flood.severity}.")
         results = await get_all_flood_postcodes(uncached_floods, outdated_cached_floods)
+        get_logger(__name__).info(f"Processed {len(results)} flood updates.")
     try:
-        worker_queue.enqueue(notify_subscribers, results, job_timeout=180)
+        if len(results) > 0:
+            worker_queue.enqueue(notify_subscribers, results, job_timeout=180)
+            get_logger(__name__).info(f"Enqueued flood updates to the producer successfully.")
+        else:
+            get_logger(__name__).info("No flood updates to send.")
     except RedisConnectionError as e:
-        get_logger().error(f"Redis Connection Error: {e}")
+        get_logger(__name__).error(f"Redis Connection Error: {e}")
+    get_logger(__name__).info(f"--------------------Finished processing {len(results)} flood updates.----------------------")
     return results
 
 
@@ -165,6 +178,7 @@ async def get_flood_updates():
 
     This method should only be called by a scheduler object.
     """
+    get_logger(__name__).info("--------------------Retrieving latest flood updates.--------------------")
     ATTEMPT_LIMIT = 5
     attempt_number = 0
     while attempt_number < ATTEMPT_LIMIT:
@@ -175,17 +189,17 @@ async def get_flood_updates():
                     flood_update: LatestFloodUpdate = LatestFloodUpdate(**res.json())
                     return await process_flood_updates(flood_update)
                 except PydanticSerializationError as e:
-                    get_logger().fatal(f"Pydantic Serialization Error: {e}")
-                    get_logger().fatal(f"Failed to get flood updates from {FLOOD_UPDATE_URL}")
+                    get_logger(__name__).fatal(f"Pydantic Serialization Error: {e}")
+                    get_logger(__name__).fatal(f"Failed to get flood updates from {FLOOD_UPDATE_URL}")
                     return list()
         except ConnectionError as e:
-            get_logger().error(f"Could not retrieve flood updates from flood api: {e}")
-            get_logger().error(f"Retrying...(attempt {attempt_number} of {ATTEMPT_LIMIT})")
+            get_logger(__name__).error(f"Could not retrieve flood updates from flood api: {e}")
+            get_logger(__name__).error(f"Retrying...(attempt {attempt_number} of {ATTEMPT_LIMIT})")
             attempt_number += 1
             time.sleep(5)
         except Exception as e:
-            get_logger().error(f"Unexpected error: {e}")
+            get_logger(__name__).error(f"Unexpected error: {e}")
             attempt_number += 1
             time.sleep(5)
-    get_logger().fatal(f"Attempt limit reached...")
+    get_logger(__name__).fatal(f"Attempt limit reached...")
     return list()

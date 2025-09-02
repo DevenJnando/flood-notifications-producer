@@ -123,6 +123,8 @@ def get_uncached_and_cached_floods_tuple(floods: list[FloodWarning]) \
                                  if severity_has_changed(flood.floodAreaID,
                                                          flood.severityLevel,
                                                          flood.severity)]
+    get_logger(__name__).info(f"Found {len(uncached_floods)} uncached flood warnings and "
+                              f"{len(cached_floods)} cached flood warnings which need updated.")
     for flood in cached_floods:
         cached_postcodes: set = get_flood_postcodes_set(flood.floodAreaID)
         flood_with_postcodes: FloodWithPostcodes = FloodWithPostcodes(flood, cached_postcodes)

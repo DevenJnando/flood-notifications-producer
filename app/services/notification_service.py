@@ -30,6 +30,6 @@ def notify_subscribers(floods_with_postcodes: list[FloodWithPostcodes]) -> list[
             producer.notify_subscribers_by_email(notifications)
             producer.prepare_consumers()
         except AttributeError as e:
-            get_logger().error(f"Failed to notify subscribers (Likely because the connection to rabbitmq failed): {e}")
+            get_logger(__name__).error(f"Failed to notify subscribers (Likely because the connection to rabbitmq failed): {e}")
             raise e
     return notifications

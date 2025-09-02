@@ -18,21 +18,21 @@ try:
 except ConnectionError as ex:
     redis = None
     worker_queue = None
-    get_logger().warning(f"Redis connection error: {ex}")
+    get_logger(__name__).warning(f"Redis connection error: {ex}")
 
 
 def save_dict_to_cache(key: str, dictionary: dict) -> None:
     try:
         redis.hset(key, mapping=dictionary)
     except ConnectionError as e:
-        get_logger().warning(f"Redis connection error: {e}")
+        get_logger(__name__).warning(f"Redis connection error: {e}")
 
 
 def retrieve_dict_from_cache(key: str) -> dict | None:
     try:
         return redis.hgetall(key)
     except ConnectionError as e:
-        get_logger().warning(f"Redis connection error: {e}")
+        get_logger(__name__).warning(f"Redis connection error: {e}")
     return None
 
 
@@ -40,14 +40,14 @@ def save_set_to_cache(key: str, set_to_cache: set) -> None:
     try:
         redis.sadd(key, *set_to_cache)
     except ConnectionError as e:
-        get_logger().warning(f"Redis connection error: {e}")
+        get_logger(__name__).warning(f"Redis connection error: {e}")
 
 
 def retrieve_set_from_cache(key: str) -> set | None:
     try:
         return redis.smembers(key)
     except ConnectionError as e:
-        get_logger().warning(f"Redis connection error: {e}")
+        get_logger(__name__).warning(f"Redis connection error: {e}")
     return None
 
 
@@ -57,7 +57,7 @@ def is_in_cache(key: str) -> bool:
             return False
         return True
     except ConnectionError as e:
-        get_logger().warning(f"Redis connection error: {e}")
+        get_logger(__name__).warning(f"Redis connection error: {e}")
     return False
 
 
@@ -69,7 +69,7 @@ def expire_key(key: str) -> None:
     try:
         redis.expire(key, day_in_seconds)
     except ConnectionError as e:
-        get_logger().warning(f"Redis connection error: {e}")
+        get_logger(__name__).warning(f"Redis connection error: {e}")
 
 
 def persist_key(key: str) -> None:
@@ -80,4 +80,4 @@ def persist_key(key: str) -> None:
     try:
         redis.persist(key)
     except ConnectionError as e:
-        get_logger().warning(f"Redis connection error: {e}")
+        get_logger(__name__).warning(f"Redis connection error: {e}")

@@ -23,7 +23,7 @@ def get_shard_map_container(client : CosmosClient) -> ContainerProxy:
                 .get_container_client(shard_map_container)
                 )
     except AzureMissingResourceHttpError as e:
-        get_logger().fatal(f"Cosmos DB client is missing a required resource: {e}")
+        get_logger(__name__).fatal(f"Cosmos DB client is missing a required resource: {e}")
         raise e
 
 
@@ -44,7 +44,7 @@ def get_postcodes_area_container(client: CosmosClient, database_name: str) -> Co
                 .get_container_client(prefix + area_container_suffix)
                 )
     except AzureMissingResourceHttpError as e:
-        get_logger().fatal(f"Cosmos DB client is missing a required resource: {e}")
+        get_logger(__name__).fatal(f"Cosmos DB client is missing a required resource: {e}")
         raise e
 
 
@@ -63,7 +63,7 @@ def get_postcodes_district_container(client: CosmosClient, area_code: str) -> Co
                 .get_container_client(area_code + district_container_suffix)
                 )
     except AzureMissingResourceHttpError as e:
-        get_logger().fatal(f"Cosmos DB client is missing a required resource: {e}")
+        get_logger(__name__).fatal(f"Cosmos DB client is missing a required resource: {e}")
         raise e
 
 
@@ -82,5 +82,5 @@ def get_full_postcodes_container(client: CosmosClient, area_code: str) -> Contai
                 .get_container_client(area_code + full_postcode_container_suffix)
                 )
     except AzureMissingResourceHttpError as e:
-        get_logger().fatal(f"Cosmos DB client is missing a required resource: {e}")
+        get_logger(__name__).fatal(f"Cosmos DB client is missing a required resource: {e}")
         raise e
