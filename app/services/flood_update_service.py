@@ -183,5 +183,9 @@ async def get_flood_updates():
             get_logger().error(f"Retrying...(attempt {attempt_number} of {ATTEMPT_LIMIT})")
             attempt_number += 1
             time.sleep(5)
+        except Exception as e:
+            get_logger().error(f"Unexpected error: {e}")
+            attempt_number += 1
+            time.sleep(5)
     get_logger().fatal(f"Attempt limit reached...")
     return list()
