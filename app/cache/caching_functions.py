@@ -2,7 +2,6 @@ from app.env_vars import redis_database_hostname, redis_database_port
 from redis import Redis
 from redis.cache import CacheConfig
 from redis.exceptions import ConnectionError
-from rq import Queue
 
 from app.logging.log import get_logger
 
@@ -14,10 +13,8 @@ try:
                   decode_responses=True,
                   protocol=3,
                   cache_config=CacheConfig())
-    worker_queue = Queue(connection=redis)
 except ConnectionError as ex:
     redis = None
-    worker_queue = None
     get_logger(__name__).warning(f"Redis connection error: {ex}")
 
 

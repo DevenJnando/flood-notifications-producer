@@ -24,8 +24,6 @@ from app.cache.flood_updates_cache import (get_uncached_and_cached_floods_tuple,
                                            cache_flood_severity,
                                            cache_flood_postcodes)
 
-from app.cache.caching_functions import worker_queue
-
 from app.logging.log import get_logger
 from app.models.pydantic_models.latest_flood_update import LatestFloodUpdate
 from app.utilities.utilities import flat_map
@@ -159,7 +157,7 @@ async def process_flood_updates(flood_update: LatestFloodUpdate) -> list[FloodWi
         get_logger(__name__).info(f"Processed {len(results)} flood updates.")
     try:
         if len(results) > 0:
-            worker_queue.enqueue(notify_subscribers, results, job_timeout=180)
+            notify_subscribers(results)
             get_logger(__name__).info(f"Enqueued flood updates to the producer successfully.")
         else:
             get_logger(__name__).info("No flood updates to send.")

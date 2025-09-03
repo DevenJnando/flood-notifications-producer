@@ -13,7 +13,6 @@ geojson
 shapely
 aiohttp
 redis
-rq
 aioschedule
 pika
 email_validator~=2.2.0
