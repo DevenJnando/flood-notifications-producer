@@ -5,7 +5,7 @@ from app.models.pydantic_models.flood_warning import FloodWarning
 class FloodNotification:
 
 
-    def __init__(self, flood: FloodWarning, subscribers: list[Subscriber]):
+    def __init__(self, flood: FloodWarning, subscribers: set[Subscriber]):
         self.flood = flood
         self.subscribers = subscribers
 

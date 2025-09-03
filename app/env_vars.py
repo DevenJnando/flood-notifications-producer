@@ -14,6 +14,7 @@ try:
     redis_database_port = getenv("REDIS_DATABASE_PORT")
     redis_postcodes_suffix = getenv("REDIS_POSTCODES_SUFFIX")
     redis_severity_suffix = getenv("REDIS_SEVERITY_SUFFIX")
+    redis_subscribers_suffix = getenv("REDIS_SUBSCRIBERS_SUFFIX")
     rabbitmq_host = getenv("RABBITMQ_HOST")
     rabbitmq_port = getenv("RABBITMQ_PORT")
     rabbitmq_user = getenv("RABBITMQ_USER")
@@ -32,6 +33,7 @@ except KeyError:
     redis_database_port = "REDIS_DATABASE_PORT"
     redis_postcodes_suffix = "REDIS_POSTCODES_SUFFIX"
     redis_severity_suffix = "REDIS_SEVERITY_SUFFIX"
+    redis_subscribers_suffix = "REDIS_SUBSCRIBERS_SUFFIX"
     rabbitmq_host = "RABBITMQ_HOST"
     rabbitmq_port = "RABBITMQ_PORT"
     rabbitmq_user = "RABBITMQ_USER"

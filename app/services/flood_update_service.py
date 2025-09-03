@@ -66,13 +66,11 @@ async def get_geojson_from_floods(flood_update: LatestFloodUpdate) -> LatestFloo
         flood_geojson_request = get(flood.floodArea.polygon)
         flood_geojson_request.raise_for_status()
         flood_geojson = flood_geojson_request.json()
-        get_logger(__name__).info(f"Received geojson for flood {flood.floodAreaID}")
         try:
             flood.floodAreaGeoJson = loads(json.dumps(flood_geojson))
-            get_logger(__name__).info(f"Assigned geojson for flood {flood.floodAreaID}")
         except JSONDecodeError as e:
             get_logger(__name__).error("Could not deserialize flood update geojson object. "
-                         "(If you see this error, something is wrong wit the environment agency API. "
+                         "(If you see this error, something is wrong with the environment agency API. "
                          "Documentation and further information can be found here:"
                          "https://environment.data.gov.uk/flood-monitoring/doc/reference")
             raise e
@@ -148,12 +146,13 @@ async def process_flood_updates(flood_update: LatestFloodUpdate) -> list[FloodWi
         floods: list[FloodWarning] = flood_update.items
         floods_tuple: tuple[list[FloodWarning], list[FloodWithPostcodes]] = get_uncached_and_cached_floods_tuple(floods)
         uncached_floods: list[FloodWarning] = floods_tuple[0]
-        outdated_cached_floods: list[FloodWithPostcodes] = floods_tuple[1]
+        cached_floods: list[FloodWithPostcodes] = floods_tuple[1]
         get_logger(__name__).info("Sorted individual flood warnings into cached and uncached lists.")
         for flood in uncached_floods:
             cache_flood_severity(flood.floodAreaID, flood.severityLevel, flood.severity)
-            get_logger(__name__).info(f"Cached previously uncached flood {flood.floodAreaID} with severity {flood.severity}.")
-        results = await get_all_flood_postcodes(uncached_floods, outdated_cached_floods)
+            get_logger(__name__).info(f"Cached previously uncached flood {flood.floodAreaID} "
+                                      f"with severity level {flood.severityLevel}.")
+        results = await get_all_flood_postcodes(uncached_floods, cached_floods)
         get_logger(__name__).info(f"Processed {len(results)} flood updates.")
     try:
         if len(results) > 0:

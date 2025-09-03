@@ -2,7 +2,7 @@ import json
 import os
 import unittest
 from unittest.mock import patch
-from app.env_vars import redis_severity_suffix, redis_postcodes_suffix
+from app.env_vars import redis_severity_suffix, redis_postcodes_suffix, redis_subscribers_suffix
 from app.models.objects.floods_with_postcodes import FloodWithPostcodes
 from app.models.pydantic_models.flood_warning import FloodWarning
 
@@ -18,13 +18,16 @@ root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os
 
 dict_key: str = "011FWFNC50A"
 set_key: str = "011FWFNC50A"
+subscribers_key: str = "011FWFNC50A"
 dict_value: dict = {
     "severity": "Flood Alert",
     "severityLevel": 3
 }
 set_value: set = {"DE2 1AE", "G76 9DQ"}
+subscribers_value: set = {"1", "2", "3", "4"}
 dict_data: dict = {dict_key + redis_severity_suffix: dict_value}
 set_data: dict = {set_key + redis_postcodes_suffix: set_value}
+subscribers_data: dict = {subscribers_key + redis_subscribers_suffix: subscribers_value}
 
 
 def flood_severity_is_cached(key: str) -> bool:
@@ -35,6 +38,12 @@ def flood_severity_is_cached(key: str) -> bool:
 
 def flood_postcodes_are_cached(key: str) -> bool:
     if set_data.get(key + redis_postcodes_suffix):
+        return True
+    return False
+
+
+def flood_subscribers_are_cached(key: str) -> bool:
+    if subscribers_data.get(key + redis_subscribers_suffix):
         return True
     return False
 
@@ -79,6 +88,11 @@ def cache_flood_postcodes(flood_area_id: str, postcodes: set) -> None:
     set_data[key] = postcodes
 
 
+def cache_flood_subscribers(flood_area_id: str, subscribers: set) -> None:
+    key = flood_area_id + redis_subscribers_suffix
+    subscribers_data[key] = subscribers
+
+
 def get_flood_severity_dict(flood_area_id: str) -> dict:
     key = flood_area_id + redis_severity_suffix
     return dict_data.get(key)
@@ -89,22 +103,26 @@ def get_flood_postcodes_set(flood_area_id: str) -> set:
     return set_data.get(key)
 
 
+def get_flood_subscribers_set(flood_area_id: str) -> set:
+    key = flood_area_id + redis_subscribers_suffix
+    return subscribers_data.get(key)
+
+
 def get_uncached_and_cached_floods_tuple(floods: list[FloodWarning]) \
         -> tuple[list[FloodWarning], list[FloodWithPostcodes]]:
-    outdated_cached_floods: list[FloodWithPostcodes] = list()
-    uncached_floods: list[FloodWarning] = [flood for flood in floods
-                                           if not flood_severity_is_cached(flood.floodAreaID)]
-    cached_floods: list[FloodWarning] = [flood for flood in floods
-                                         if flood_severity_is_cached(flood.floodAreaID)]
-    cached_floods: list[FloodWarning] = [flood for flood in cached_floods
-                                         if severity_has_changed(flood.floodAreaID + redis_severity_suffix,
-                                                                 flood.severityLevel,
-                                                                 flood.severity)]
+    cached_floods_with_postcodes: list[FloodWithPostcodes] = list()
+    uncached_floods: list[FloodWarning] = list()
+    cached_floods: list[FloodWarning] = list()
+    for flood in floods:
+        if flood_severity_is_cached(flood.floodAreaID):
+            cached_floods.append(flood)
+        else:
+            uncached_floods.append(flood)
     for flood in cached_floods:
         cached_postcodes: set = get_flood_postcodes_set(flood.floodAreaID)
         flood_with_postcodes: FloodWithPostcodes = FloodWithPostcodes(flood, cached_postcodes)
-        outdated_cached_floods.append(flood_with_postcodes)
-    results: tuple[list[FloodWarning], list[FloodWithPostcodes]] = (uncached_floods, outdated_cached_floods)
+        cached_floods_with_postcodes.append(flood_with_postcodes)
+    results: tuple[list[FloodWarning], list[FloodWithPostcodes]] = (uncached_floods, cached_floods_with_postcodes)
     return results
 
 
@@ -194,11 +212,30 @@ class FloodUpdatesCacheTests(unittest.TestCase):
         assert mock_postcodes_cached_method("not-a-key") == False
 
 
+    @patch("app.cache.flood_updates_cache.flood_subscribers_are_cached")
+    def test_flood_subscribers_are_cached(self, mock_subscribers_cached_method):
+        mock_subscribers_cached_method.side_effect = flood_subscribers_are_cached
+        assert mock_subscribers_cached_method(subscribers_key) == True
+
+
+    @patch("app.cache.flood_updates_cache.flood_subscribers_are_cached")
+    def test_flood_subscribers_are_not_cached(self, mock_subscribers_cached_method):
+        mock_subscribers_cached_method.side_effect = flood_subscribers_are_cached
+        assert mock_subscribers_cached_method("not-a-key") == False
+
+
     @patch("app.cache.flood_updates_cache.get_flood_postcodes_set")
     def test_get_flood_postcodes_set(self, mock_get_method):
         mock_get_method.side_effect = get_flood_postcodes_set
         expected_value: set = set_value
         assert mock_get_method(set_key) == expected_value
+
+
+    @patch("app.cache.flood_updates_cache.get_flood_subscribers_set")
+    def test_get_flood_subscribers_set(self, mock_get_method):
+        mock_get_method.side_effect = get_flood_subscribers_set
+        expected_value: set = subscribers_value
+        assert mock_get_method(subscribers_key) == expected_value
 
 
     @patch("app.cache.flood_updates_cache.get_flood_postcodes_set")
@@ -212,8 +249,19 @@ class FloodUpdatesCacheTests(unittest.TestCase):
         assert mock_get_method(new_key) == new_postcodes
 
 
+    @patch("app.cache.flood_updates_cache.get_flood_subscribers_set")
+    @patch("app.cache.flood_updates_cache.cache_flood_subscribers")
+    def test_cache_flood_postcodes(self, mock_cache_method, mock_get_method):
+        mock_get_method.side_effect = get_flood_subscribers_set
+        mock_cache_method.side_effect = cache_flood_subscribers
+        new_key: str = "28A739E"
+        new_subscribers: set = {"5", "3"}
+        mock_cache_method(new_key, new_subscribers)
+        assert mock_get_method(new_key) == new_subscribers
+
+
     @patch("app.cache.flood_updates_cache.get_uncached_and_cached_floods_tuple")
-    def test_get_valid_cached_floods_with_postcodes(self, mock_get_method):
+    def test_get_cached_and_uncached_floods_with_postcodes(self, mock_get_method):
         test_floods: dict = json.loads(open(root_dir + "/fixtures/test_floods.json").read())
         mock_uncached_floods: dict = json.loads(open(root_dir + "/fixtures/mock_uncached_floods.json").read())
 

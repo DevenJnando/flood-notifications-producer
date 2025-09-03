@@ -3,16 +3,19 @@ import os
 import unittest
 
 from app.cache.caching_functions import redis
-from app.env_vars import redis_severity_suffix, redis_postcodes_suffix
+from app.env_vars import redis_severity_suffix, redis_postcodes_suffix, redis_subscribers_suffix
 from app.cache.flood_updates_cache import (get_flood_postcodes_set,
                                            get_flood_severity_dict,
+                                           get_flood_subscribers_set,
                                            get_uncached_and_cached_floods_tuple,
                                            severity_has_changed,
                                            cache_is_live,
                                            flood_severity_is_cached,
                                            flood_postcodes_are_cached,
                                            cache_flood_severity,
-                                           cache_flood_postcodes)
+                                           cache_flood_postcodes,
+                                           cache_flood_subscribers,
+                                           flood_subscribers_are_cached)
 from app.models.objects.floods_with_postcodes import FloodWithPostcodes
 from app.models.pydantic_models.flood_warning import FloodWarning
 
@@ -20,13 +23,16 @@ root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os
 
 dict_key: str = "011FWFNC50A"
 set_key: str = "011FWFNC50A"
+subscriber_key: str = "011FWFNC50A"
 dict_value: dict = {
     "severity": "Warning no longer in force",
     "severityLevel": "4"
 }
 set_value: set = {"DE2 1AE", "G76 9DQ"}
+subscriber_value: set = {"1", "2", "3", "4"}
 dict_data: dict = {dict_key + redis_severity_suffix: dict_value}
 set_data: dict = {set_key + redis_postcodes_suffix: set_value}
+subscriber_data: dict = {subscriber_key + redis_subscribers_suffix: subscriber_value}
 
 
 class FloodUpdatesCacheTests(unittest.TestCase):
@@ -36,6 +42,7 @@ class FloodUpdatesCacheTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cache_flood_severity(dict_key, int(dict_value.get("severityLevel")), dict_value.get("severity"))
         cache_flood_postcodes(set_key, set_value)
+        cache_flood_subscribers(subscriber_key, subscriber_value)
 
 
     @classmethod
@@ -100,9 +107,22 @@ class FloodUpdatesCacheTests(unittest.TestCase):
         assert flood_postcodes_are_cached("not-a-key") == False
 
 
+    def test_flood_subscribers_are_cached(self):
+        assert flood_subscribers_are_cached(subscriber_key) == True
+
+
+    def test_flood_subscribers_are_not_cached(self):
+        assert flood_subscribers_are_cached("not-a-key") == False
+
+
     def test_get_flood_postcodes_set(self):
         expected_value: set = set_value
         assert get_flood_postcodes_set(set_key) == expected_value
+
+
+    def test_get_flood_subscribers_set(self):
+        expected_value: set = subscriber_value
+        assert get_flood_subscribers_set(subscriber_key) == expected_value
 
 
     def test_cache_flood_postcodes(self):
@@ -110,6 +130,13 @@ class FloodUpdatesCacheTests(unittest.TestCase):
         new_postcodes: set = {"LM2 7UI", "DL9 4DE"}
         cache_flood_postcodes(new_key, new_postcodes)
         assert get_flood_postcodes_set(new_key) == new_postcodes
+
+
+    def test_cache_flood_subscribers(self):
+        new_key: str = "28A739E"
+        new_subscribers: set = {"5", "4"}
+        cache_flood_subscribers(new_key, new_subscribers)
+        assert get_flood_subscribers_set(new_key) == new_subscribers
 
 
     def test_get_valid_cached_floods_with_postcodes(self):
