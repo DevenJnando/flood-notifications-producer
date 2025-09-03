@@ -15,7 +15,7 @@ if not os.path.exists(log_path):
 
 logger = logging.getLogger(log_name)
 file_handler = RotatingFileHandler(log_path+ "/" + log_name,
-                                   maxBytes=716800)
+                                   maxBytes=71680)
 
 if BUILD == 'dev':
     logger.setLevel(logging.DEBUG)

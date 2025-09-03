@@ -17,7 +17,7 @@ from requests.models import Response
 from app.models.objects.flood_geometries import FloodGeometries
 from app.models.pydantic_models.flood_warning import FloodWarning
 from app.models.objects.floods_with_postcodes import FloodWithPostcodes
-from app.services.notification_service import notify_subscribers
+from app.services.notification_service import notify_subscribers, process_flood_notifications
 from app.services.postcodes_in_flood_range_service import collect_postcodes_in_flood_range
 from app.services.geometry_subdivision_service import subdivide_from_feature_collection
 from app.cache.flood_updates_cache import (get_uncached_and_cached_floods_tuple,
@@ -140,6 +140,7 @@ async def process_flood_updates(flood_update: LatestFloodUpdate) -> list[FloodWi
     @return: a list of FloodWithPostcodes objects
     """
     results: list[FloodWithPostcodes] = list()
+    get_logger(__name__).info("--------------------Retrieving latest flood updates.--------------------")
     flood_update = await get_geojson_from_floods(flood_update)
     if flood_update is not None:
         get_logger(__name__).info("Retrieved geojson objects for current flood update.")
@@ -148,20 +149,12 @@ async def process_flood_updates(flood_update: LatestFloodUpdate) -> list[FloodWi
         uncached_floods: list[FloodWarning] = floods_tuple[0]
         cached_floods: list[FloodWithPostcodes] = floods_tuple[1]
         get_logger(__name__).info("Sorted individual flood warnings into cached and uncached lists.")
+        results = await get_all_flood_postcodes(uncached_floods, cached_floods)
+        get_logger(__name__).info(f"Processed {len(results)} flood updates.")
         for flood in uncached_floods:
             cache_flood_severity(flood.floodAreaID, flood.severityLevel, flood.severity)
             get_logger(__name__).info(f"Cached previously uncached flood {flood.floodAreaID} "
                                       f"with severity level {flood.severityLevel}.")
-        results = await get_all_flood_postcodes(uncached_floods, cached_floods)
-        get_logger(__name__).info(f"Processed {len(results)} flood updates.")
-    try:
-        if len(results) > 0:
-            notify_subscribers(results)
-            get_logger(__name__).info(f"Enqueued flood updates to the producer successfully.")
-        else:
-            get_logger(__name__).info("No flood updates to send.")
-    except RedisConnectionError as e:
-        get_logger(__name__).error(f"Redis Connection Error: {e}")
     get_logger(__name__).info(f"--------------------Finished processing {len(results)} flood updates.----------------------")
     return results
 
@@ -175,7 +168,6 @@ async def get_flood_updates():
 
     This method should only be called by a scheduler object.
     """
-    get_logger(__name__).info("--------------------Retrieving latest flood updates.--------------------")
     ATTEMPT_LIMIT = 5
     attempt_number = 0
     while attempt_number < ATTEMPT_LIMIT:
@@ -184,7 +176,9 @@ async def get_flood_updates():
             if res.status_code == 200:
                 try:
                     flood_update: LatestFloodUpdate = LatestFloodUpdate(**res.json())
-                    return await process_flood_updates(flood_update)
+                    floods_with_postcodes = await process_flood_updates(flood_update)
+                    process_flood_notifications(floods_with_postcodes)
+                    return floods_with_postcodes
                 except PydanticSerializationError as e:
                     get_logger(__name__).fatal(f"Pydantic Serialization Error: {e}")
                     get_logger(__name__).fatal(f"Failed to get flood updates from {FLOOD_UPDATE_URL}")

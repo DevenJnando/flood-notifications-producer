@@ -10,12 +10,14 @@ from shapely import intersects
 
 from redis.exceptions import ConnectionError
 
+from app.models.objects.flood_notification import FloodNotification
 from app.models.objects.floods_with_postcodes import FloodWithPostcodes
 from app.models.pydantic_models.flood_warning import FloodWarning
 from app.models.pydantic_models.latest_flood_update import LatestFloodUpdate
 from app.cache.caching_functions import redis
 from app.services.flood_update_service import get_all_postcodes_in_flood_range, process_flood_updates
 from app.services.geometry_subdivision_service import get_geometry_from_geojson
+from app.services.notification_service import notify_subscribers
 
 from app.utilities.utilities import flat_map
 
@@ -104,6 +106,8 @@ class FloodToPostcodeServiceTests(IsolatedAsyncioTestCase):
         flood_update: LatestFloodUpdate = LatestFloodUpdate(**test_floods)
         flood_postcodes: list[FloodWithPostcodes] = await process_flood_updates(flood_update)
         assert len(flood_postcodes) > 0
+        notifications_to_send: list[FloodNotification] = notify_subscribers(flood_postcodes)
+        assert len(notifications_to_send) == len(flood_postcodes)
 
 
     async def test_process_flood_update_with_caching(self):
@@ -115,17 +119,23 @@ class FloodToPostcodeServiceTests(IsolatedAsyncioTestCase):
         flood_update: LatestFloodUpdate = LatestFloodUpdate(**test_floods)
         severity_changes_update: LatestFloodUpdate = LatestFloodUpdate(**test_floods_severity_changes)
         second_run: list[FloodWithPostcodes] = await process_flood_updates(flood_update)
-        assert len(second_run) == 0
+        assert len(second_run) == len(flood_update.items)
+        notifications_to_send: list[FloodNotification] = notify_subscribers(second_run)
+        assert len(notifications_to_send) == 0
         third_run: list[FloodWithPostcodes] = await process_flood_updates(severity_changes_update)
-        assert len(third_run) == 2
+        assert len(third_run) == len(flood_update.items)
+        updated_notifications_to_send: list[FloodNotification] = notify_subscribers(third_run)
+        assert len(updated_notifications_to_send) == 2
         expected_results = {
             "122WAF939": "122WAF939",
             "011WAFKB": "011WAFKB"
         }
-        for flood in third_run:
+        for flood in updated_notifications_to_send:
             assert flood.flood.floodAreaID == expected_results.get(flood.flood.floodAreaID)
         final_run: list[FloodWithPostcodes] = await process_flood_updates(severity_changes_update)
-        assert len(final_run) == 0
+        assert len(final_run) == len(flood_update.items)
+        final_notifications_to_send: list[FloodNotification] = notify_subscribers(final_run)
+        assert len(final_notifications_to_send) == 0
 
 
 if __name__ == '__main__':

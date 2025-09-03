@@ -43,7 +43,7 @@ def severity_has_changed(flood_area_id: str, severity_level: int, severity_messa
     it is set to expire after one full day.
     """
     flood_severity_dict: dict = get_flood_severity_dict(flood_area_id)
-    if flood_severity_dict is not None:
+    if flood_severity_dict is not None and flood_severity_dict != {}:
         try:
             get_logger(__name__).info(f"Found severity level map for flood {flood_area_id} in cache.")
             severity_level_in_cache: int = int(flood_severity_dict.get("severityLevel"))
@@ -64,7 +64,13 @@ def severity_has_changed(flood_area_id: str, severity_level: int, severity_messa
                                       f"({severity_level_in_cache}) are of the same level.")
             return False
         except KeyError as e:
-            raise e
+            get_logger(__name__).error(f"Attempted to access a non-existent key. It is likely no cached entry "
+                                       f"exists in the database for flood {flood_area_id}. "
+                                       f"Full error: {e}")
+        except TypeError as e:
+            get_logger(__name__).error(f"Attempted to perform a type conversion on a key with a NoneType value. "
+                                       f"It is likely no cached entry exists in the database for flood {flood_area_id}. "
+                                       f"Full error: {e}")
     get_logger(__name__).warning(f"No severity level map found for flood {flood_area_id}.")
     return True
 

@@ -30,10 +30,10 @@ def get_all_subscribers_by_postcodes(session_maker: sessionmaker, postcodes: set
                 for result in session.execute(statement):
                     subscribers_with_postcodes.append(result.Subscriber)
             if len(subscribers_with_postcodes) == 0:
-                get_logger(__name__).warning(f"No subscribers with postcodes {postcodes} found in database.")
+                get_logger(__name__).warning(f"No subscribers with the given postcodes were found in database.")
             return subscribers_with_postcodes
         except Exception as e:
-            get_logger(__name__).error(f"Failed to get subscribers for postcodes {postcodes}: Retrying. "
+            get_logger(__name__).error(f"Failed to get subscribers for given postcodes: Retrying. "
                          f"(Attempt {attempt_number} of {ATTEMPT_LIMIT}): {e}")
             attempt_number += 1
             time.sleep(5)

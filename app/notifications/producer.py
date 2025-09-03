@@ -70,7 +70,7 @@ class Producer:
         try:
             self.channel.basic_publish(exchange='', routing_key=routing_key, body=body,
                                        mandatory=True)
-            get_logger(__name__).info(f"Successfully sent message with body ({body}) to {routing_key}.")
+            get_logger(__name__).info(f"Successfully sent message with body to {routing_key}.")
         except NackError:
             if attempt < ATTEMPT_LIMIT:
                 attempt += 1
