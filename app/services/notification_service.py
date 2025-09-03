@@ -37,7 +37,8 @@ def return_relevant_subscribers(flood_with_postcodes: FloodWithPostcodes, subscr
     if flood_subscribers_are_cached(flood_with_postcodes.flood.floodAreaID, ):
         cached_subscriber_ids = get_flood_subscribers_set(flood_with_postcodes.flood.floodAreaID)
         subscriber_ids = subscriber_ids - cached_subscriber_ids
-    cache_flood_subscribers(flood_with_postcodes.flood.floodAreaID, subscriber_ids)
+    if len(subscriber_ids) > 0:
+        cache_flood_subscribers(flood_with_postcodes.flood.floodAreaID, subscriber_ids)
 
     for subscriber_id in subscriber_ids:
         if subscribers_dict.get(str(subscriber_id)):
