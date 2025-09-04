@@ -86,11 +86,15 @@ async def get_all_postcodes_in_flood_range(floods: list[FloodWarning]) -> list[d
     """
     geometries_with_flood_area_ids: list[FloodGeometries] = list()
     for flood in floods:
-        geometries: list[Polygon | MultiPolygon] = (
-            subdivide_from_feature_collection(flood.floodAreaGeoJson, SEGMENT_THRESHOLD))
-        flood_geometries_object: FloodGeometries = FloodGeometries(flood.floodAreaID, geometries)
-        geometries_with_flood_area_ids.append(flood_geometries_object)
-        get_logger(__name__).info(f"Subdivided and added geometries to flood {flood.floodAreaID}.")
+        try:
+            geometries: list[Polygon | MultiPolygon] = (
+                subdivide_from_feature_collection(flood.floodAreaGeoJson, SEGMENT_THRESHOLD))
+            flood_geometries_object: FloodGeometries = FloodGeometries(flood.floodAreaID, geometries)
+            geometries_with_flood_area_ids.append(flood_geometries_object)
+            get_logger(__name__).info(f"Subdivided and added geometries to flood {flood.floodAreaID}.")
+        except TypeError as e:
+            get_logger(__name__).error(f"Encountered Type Error: {e}")
+            raise e
     flood_postcodes = [collect_postcodes_in_flood_range(geo_with_id.id, geo_with_id.geometries)
                        for geo_with_id in geometries_with_flood_area_ids]
     flood_postcodes_results = await asyncio.gather(*flood_postcodes)
@@ -190,7 +194,6 @@ async def get_flood_updates():
             time.sleep(5)
         except Exception as e:
             get_logger(__name__).error(f"Unexpected error: {e}")
-            attempt_number += 1
-            time.sleep(5)
+            raise e
     get_logger(__name__).fatal(f"Attempt limit reached...")
-    return list()
+    raise ConnectionError("Could not retrieve flood updates from flood api. Attempt limit reached.")

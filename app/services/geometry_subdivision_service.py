@@ -36,6 +36,8 @@ def get_geometry_from_geojson(geojson: str) -> list[Geometry]:
     try:
         geom: Geometry = from_geojson(geojson)
         valid_geom = make_geometry_valid(geom)
+        if isinstance(valid_geom, GeometryCollection):
+            valid_geom = valid_geom.geoms
     except GEOSException as e:
         raise e
     parts: array = get_parts(valid_geom)
@@ -51,6 +53,8 @@ def get_geojson_from_geometry(geom: Geometry):
     """
     try:
         valid_geom = make_geometry_valid(geom)
+        if isinstance(valid_geom, GeometryCollection):
+            valid_geom = valid_geom.geoms
         geojson: str = to_geojson(valid_geom)
     except TypeError as e:
         raise e
@@ -86,6 +90,12 @@ def recursive_geometry_subdivision(geom: Polygon, threshold, recursion_depth=0):
         intersections = geom.intersection(split_geometry)
         if not isinstance(intersections, GeometryCollection):
             intersections = [intersections]
+        else:
+            relevant_intersections: list[Geometry] = list()
+            for geom in intersections.geoms:
+                if isinstance(geom, (Polygon, MultiPolygon)):
+                    relevant_intersections.append(geom)
+            intersections = relevant_intersections
         for part in intersections:
             if isinstance(part, (Polygon, MultiPolygon)):
                 result.extend(recursive_geometry_subdivision(part, threshold, recursion_depth + 1))

@@ -27,6 +27,7 @@ class FloodToPostcodeOperationsTests(IsolatedAsyncioTestCase):
             assert isinstance(part, Polygon)
             assert intersects(part, test_geometry)
 
+
     def verify_multipolygon_geometries_intersect_from_list(self, test_geometry: Iterable[Geometry],
                                                            returned_list_of_dicts_from_db: list[dict[str, Any]]):
         has_intersection = False
@@ -47,6 +48,7 @@ class FloodToPostcodeOperationsTests(IsolatedAsyncioTestCase):
                             has_intersection = True
                             break
         return has_intersection
+
 
     def verify_multipolygon_geometries_intersect_from_dict(self, test_geometry: Iterable[Geometry],
                                                            returned_dict_from_db: dict):
@@ -72,9 +74,9 @@ class FloodToPostcodeOperationsTests(IsolatedAsyncioTestCase):
             assert isinstance(flood, dict)
             flood_area_id: str = flood["floodAreaId"]
             flood_geometries_as_geojson: list[GeoPolygon | GeoMultiPolygon] = flood["geometries"]
-            flood_geometries: list[Geometry] = []
+            flood_geometries: list[list[Geometry]] = []
             for geometry_as_geojson in flood_geometries_as_geojson:
-                flood_geometry: Geometry = get_geometry_from_geojson(json.dumps(geometry_as_geojson))
+                flood_geometry: list[Geometry] = get_geometry_from_geojson(json.dumps(geometry_as_geojson))
                 flood_geometries.append(flood_geometry)
             flood_with_postcodes: dict[str, Any] = await collect_postcodes_in_flood_range(flood_area_id,
                                                                                            flood_geometries_as_geojson)
