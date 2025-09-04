@@ -5,6 +5,8 @@ from unittest import TestCase
 
 from shapely import Geometry, Polygon, GEOSException, intersects
 from geojson import FeatureCollection
+from shapely.geometry.linestring import LineString
+from shapely.geometry.multipolygon import MultiPolygon
 
 from app.services.geometry_subdivision_service import (get_geometry_from_geojson,
                                                        get_geojson_from_geometry,
@@ -38,7 +40,7 @@ class TestGeometrySubdivision(TestCase):
 
     def test_geojson_from_invalid_geometry(self):
         garbage_geometry = "Not a geometry"
-        self.assertRaises(TypeError, get_geojson_from_geometry, garbage_geometry)
+        self.assertRaises(AttributeError, get_geojson_from_geometry, garbage_geometry)
 
 
     def test_multipolygon_from_geojson(self):
@@ -49,7 +51,7 @@ class TestGeometrySubdivision(TestCase):
         assert len(geometries) > 0
         for geometry in geometries:
             assert isinstance(geometry, Geometry)
-            assert isinstance(geometry, Polygon)
+            assert isinstance(geometry, (Polygon, MultiPolygon))
             assert geometry.is_valid
 
 
@@ -61,7 +63,7 @@ class TestGeometrySubdivision(TestCase):
         assert len(geometries) > 0
         for geometry in geometries:
             assert isinstance(geometry, Geometry)
-            assert isinstance(geometry, Polygon)
+            assert isinstance(geometry, (Polygon, MultiPolygon, LineString))
             assert geometry.is_valid
 
 

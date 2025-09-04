@@ -16,10 +16,14 @@ RECURSION_LIMIT = 250
 
 def make_geometry_valid(geom: Geometry) -> Geometry:
     valid_geom = make_valid(geom)
-    if valid_geom.is_valid:
-        return valid_geom
-    get_logger(__name__).fatal(f"The provided geometry could not be validated...")
-    raise GEOSException(f"Failed to make valid geometry: {valid_geom}")
+    try:
+        if valid_geom.is_valid:
+            return valid_geom
+        get_logger(__name__).fatal(f"The provided geometry could not be validated...")
+        raise GEOSException(f"Failed to make valid geometry: {valid_geom}")
+    except (AttributeError, TypeError) as e:
+        get_logger(__name__).fatal(f"The provided argument lacked a necessary Geometry attribute: {e}")
+        raise e
 
 
 def get_geometry_from_geojson(geojson: str) -> list[Geometry]:
