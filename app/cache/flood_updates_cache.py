@@ -81,23 +81,32 @@ def cache_flood_severity(flood_area_id: str, severity_level: int, severity_messa
         "severity": severity_message,
         "severityLevel": severity_level
     }
-    save_dict_to_cache(key, severity_dict)
-    get_logger(__name__).info(f"Saved flood {flood_area_id} severity level ({severity_level}) in cache.")
-    persist_key(key)
+    try:
+        save_dict_to_cache(key, severity_dict)
+        get_logger(__name__).info(f"Saved flood {flood_area_id} severity level ({severity_level}) in cache.")
+        persist_key(key)
+    except Exception as e:
+        get_logger(__name__).error(f"Could not save severity to cache: {e}")
 
 
 def cache_flood_postcodes(flood_area_id: str, postcodes: set) -> None:
     key = flood_area_id + redis_postcodes_suffix
-    save_set_to_cache(key, postcodes)
-    get_logger(__name__).info(f"Saved flood {flood_area_id} postcodes set in cache.")
-    persist_key(key)
+    try:
+        save_set_to_cache(key, postcodes)
+        get_logger(__name__).info(f"Saved flood {flood_area_id} postcodes set in cache.")
+        persist_key(key)
+    except Exception as e:
+        get_logger(__name__).error(f"Could not save postcodes to cache: {e}")
 
 
 def cache_flood_subscribers(flood_area_id: str, subscribers: set) -> None:
     key = flood_area_id + redis_subscribers_suffix
-    save_set_to_cache(key, subscribers)
-    get_logger(__name__).info(f"Saved flood {flood_area_id} subscribers set in cache.")
-    persist_key(key)
+    try:
+        save_set_to_cache(key, subscribers)
+        get_logger(__name__).info(f"Saved flood {flood_area_id} subscribers set in cache.")
+        persist_key(key)
+    except Exception as e:
+        get_logger(__name__).error(f"Could not save subscribers to cache: {e}")
 
 
 def get_flood_severity_dict(flood_area_id: str) -> dict:

@@ -50,6 +50,19 @@ class TestGeometrySubdivision(TestCase):
         for geometry in geometries:
             assert isinstance(geometry, Geometry)
             assert isinstance(geometry, Polygon)
+            assert geometry.is_valid
+
+
+    def test_invalid_multipolygon_from_geojson(self):
+        invalid_multipolygon = json.loads(open(root_dir + "/fixtures/test_invalid_multipolygon.json").read())
+        invalid_multipolygon_as_string = json.dumps(invalid_multipolygon)
+        geometries: list[Geometry] = get_geometry_from_geojson(invalid_multipolygon_as_string)
+        assert isinstance(geometries, list)
+        assert len(geometries) > 0
+        for geometry in geometries:
+            assert isinstance(geometry, Geometry)
+            assert isinstance(geometry, Polygon)
+            assert geometry.is_valid
 
 
     def test_polygon_to_geojson(self):
@@ -72,6 +85,15 @@ class TestGeometrySubdivision(TestCase):
             assert isinstance(geometry_as_geojson, str)
             geojson_as_dict = json.loads(geometry_as_geojson)
             assert isinstance(geojson_as_dict, dict)
+
+
+    def test_invalid_multipolygon_to_geojson(self):
+        invalid_multipolygon = json.loads(open(root_dir + "/fixtures/test_invalid_multipolygon.json").read())
+        invalid_multipolygon_as_string = json.dumps(invalid_multipolygon)
+        geometries: list[Geometry] = get_geometry_from_geojson(invalid_multipolygon_as_string)
+        for geometry in geometries:
+            geometry_as_geojson = get_geojson_from_geometry(geometry)
+            print(geometry_as_geojson)
 
 
     def test_polygon_subdivision(self):
@@ -114,14 +136,18 @@ class TestGeometrySubdivision(TestCase):
             json.loads(open(root_dir + "/fixtures/test_feature_collection_4.json").read()))
         test_feature_collection_5: FeatureCollection = (
             json.loads(open(root_dir + "/fixtures/test_feature_collection_5.json").read()))
+        test_feature_collection_6: FeatureCollection = (
+            json.loads(open(root_dir + "/fixtures/test_feature_collection_6.json").read())
+        )
         test_feature_collections.append(test_feature_collection_1)
         test_feature_collections.append(test_feature_collection_2)
         test_feature_collections.append(test_feature_collection_3)
         test_feature_collections.append(test_feature_collection_4)
         test_feature_collections.append(test_feature_collection_5)
+        test_feature_collections.append(test_feature_collection_6)
         resultant_geometries: list = []
         for feature_collection in test_feature_collections:
-            geometries: list= subdivide_from_feature_collection(feature_collection, THRESHOLD)
+            geometries: list = subdivide_from_feature_collection(feature_collection, THRESHOLD)
             resultant_geometries.extend(geometries)
         for resultant_geom in resultant_geometries:
             assert isinstance(resultant_geom, dict)

@@ -2,14 +2,24 @@ import array
 
 from shapely import (Polygon, from_geojson, get_parts, to_geojson, Geometry, GEOSException, box,
                      GeometryCollection, MultiPolygon)
+from shapely.validation import make_valid
 from geojson import Polygon as GeojsonPolygon
 from geojson import MultiPolygon as GeojsonMultiPolygon
 from geojson import FeatureCollection, Feature
 import json
 
 from app.cosmos.cosmos_queries import COSMOS_QUERY_CHARACTER_LIMIT, match_areas_to_geometry_query
+from app.logging.log import get_logger
 
 RECURSION_LIMIT = 250
+
+
+def make_geometry_valid(geom: Geometry) -> Geometry:
+    valid_geom = make_valid(geom)
+    if valid_geom.is_valid:
+        return valid_geom
+    get_logger(__name__).fatal(f"The provided geometry could not be validated...")
+    raise GEOSException(f"Failed to make valid geometry: {valid_geom}")
 
 
 def get_geometry_from_geojson(geojson: str) -> list[Geometry]:
@@ -21,9 +31,10 @@ def get_geometry_from_geojson(geojson: str) -> list[Geometry]:
     """
     try:
         geom: Geometry = from_geojson(geojson)
+        valid_geom = make_geometry_valid(geom)
     except GEOSException as e:
         raise e
-    parts: array = get_parts(geom)
+    parts: array = get_parts(valid_geom)
     return parts.tolist()
 
 
@@ -35,7 +46,8 @@ def get_geojson_from_geometry(geom: Geometry):
     @return: a serialized geojson object represented as a string
     """
     try:
-        geojson: str = to_geojson(geom)
+        valid_geom = make_geometry_valid(geom)
+        geojson: str = to_geojson(valid_geom)
     except TypeError as e:
         raise e
     return geojson
@@ -125,5 +137,12 @@ def subdivide_from_feature_collection(feature_collection: FeatureCollection, cel
                                                       for subdivided_polygon in subdivided_polygons]
                 geometries.extend(polygons_as_geojson)
         else:
-            geometries.append(feature_geometry)
+            validated_geometries: list[Geometry] = get_geometry_from_geojson(feature_geometry_as_string)
+            for validated_geometry in validated_geometries:
+                if isinstance(validated_geometry, Polygon):
+                    polygon_geojson: GeojsonPolygon = json.loads(get_geojson_from_geometry(validated_geometry))
+                    geometries.append(polygon_geojson)
+                if isinstance(validated_geometry, MultiPolygon):
+                    multipolygon_geojson: GeojsonMultiPolygon = json.loads(get_geojson_from_geometry(validated_geometry))
+                    geometries.append(multipolygon_geojson)
     return geometries

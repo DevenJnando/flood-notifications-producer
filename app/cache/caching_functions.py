@@ -22,6 +22,8 @@ def save_dict_to_cache(key: str, dictionary: dict) -> None:
         get_logger(__name__).info(f"Saved key {key} to cache with value {dictionary}.")
     except ConnectionError as e:
         get_logger(__name__).error(f"Redis connection error: {e}")
+    except Exception as e:
+        get_logger(__name__).error(f"An unexpected error has occurred: {e}")
 
 
 def retrieve_dict_from_cache(key: str) -> dict | None:
@@ -30,6 +32,8 @@ def retrieve_dict_from_cache(key: str) -> dict | None:
         return redis.hgetall(key)
     except ConnectionError as e:
         get_logger(__name__).error(f"Redis connection error: {e}")
+    except Exception as e:
+        get_logger(__name__).error(f"An unexpected error has occurred: {e}")
     return None
 
 
@@ -39,6 +43,8 @@ def save_set_to_cache(key: str, set_to_cache: set) -> None:
         get_logger(__name__).info(f"Saved key {key} to cache with value {set_to_cache}.")
     except ConnectionError as e:
         get_logger(__name__).error(f"Redis connection error: {e}")
+    except Exception as e:
+        get_logger(__name__).error(f"An unexpected error has occurred: {e}")
 
 
 def retrieve_set_from_cache(key: str) -> set | None:
@@ -47,6 +53,8 @@ def retrieve_set_from_cache(key: str) -> set | None:
         return redis.smembers(key)
     except ConnectionError as e:
         get_logger(__name__).error(f"Redis connection error: {e}")
+    except Exception as e:
+        get_logger(__name__).error(f"An unexpected error has occurred: {e}")
     return None
 
 
@@ -59,6 +67,8 @@ def is_in_cache(key: str) -> bool:
         return True
     except ConnectionError as e:
         get_logger(__name__).error(f"Redis connection error: {e}")
+    except Exception as e:
+        get_logger(__name__).error(f"An unexpected error has occurred: {e}")
     return False
 
 
@@ -72,6 +82,8 @@ def expire_key(key: str) -> None:
         get_logger(__name__).info(f"Key {key} will expire in {day_in_seconds} seconds.")
     except ConnectionError as e:
         get_logger(__name__).error(f"Redis connection error: {e}")
+    except Exception as e:
+        get_logger(__name__).error(f"An unexpected error has occurred: {e}")
 
 
 def persist_key(key: str) -> None:
@@ -84,3 +96,5 @@ def persist_key(key: str) -> None:
         get_logger(__name__).info(f"Key {key} persisted.")
     except ConnectionError as e:
         get_logger(__name__).error(f"Redis connection error: {e}")
+    except Exception as e:
+        get_logger(__name__).error(f"An unexpected error has occurred: {e}")
